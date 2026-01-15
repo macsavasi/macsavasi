@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ULTRA BATTLE ARENA v10.0 ULTIMATE</title>
+<title>ULTRA BATTLE ARENA v10.5 AUTO-CONNECT</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
@@ -325,8 +325,8 @@ body.leader-bjk { background-color: #111; }
       <input type="text" class="set-input" id="api-key" placeholder="AIza...">
     </div>
     <div class="set-row">
-      <label>YAYIN ID (VIDEO ID)</label>
-      <input type="text" class="set-input" id="chat-id" placeholder="Video ID">
+      <label id="lbl-channel">KANAL ID (UC.....)</label>
+      <input type="text" class="set-input" id="chat-id" placeholder="UCxxxxxxxxxxxx...">
     </div>
     <div class="set-row">
       <div style="display:flex; gap:10px;">
@@ -462,9 +462,13 @@ body.leader-bjk { background-color: #111; }
 
 <script>
 // --- CONFIGURATION ---
+// BURAYA SADECE KANAL ID'Nİ VE API KEY'İNİ YAZIP KAYDEDEBİLİRSİN
+const SABIT_API_KEY = 'AIzaSyD9zxF36Ylf0hV1_h6KUVZ2rm1ppUzbUUQ'; // Tırnak içine API Key yapıştır
+const SABIT_CHANNEL_ID = 'UCVJbgJ-hd2UPc9cM5VIZvjA'; // Tırnak içine Kanal ID (UC...) yapıştır
+
 let CONFIG = {
-  apiKey: localStorage.getItem('u_api') || '',
-  chatId: localStorage.getItem('u_chat') || '',
+  apiKey: SABIT_API_KEY || localStorage.getItem('u_api') || '',
+  channelId: SABIT_CHANNEL_ID || localStorage.getItem('u_channel') || '', // Video ID yerine Channel ID
   duration: parseInt(localStorage.getItem('u_time')) || 60,
   muted: false
 };
@@ -534,7 +538,10 @@ document.body.addEventListener('click', (e) => {
 function openSettings() {
   document.getElementById('settings-modal').style.display = 'flex';
   document.getElementById('api-key').value = CONFIG.apiKey;
-  document.getElementById('chat-id').value = CONFIG.chatId;
+  // Label ve Placeholder Güncellemesi
+  document.getElementById('lbl-channel').innerText = "KANAL ID (UC.....)";
+  document.getElementById('chat-id').placeholder = "UCxxxxxxxxxxxx...";
+  document.getElementById('chat-id').value = CONFIG.channelId;
   document.getElementById('round-time').value = CONFIG.duration;
 }
 
@@ -544,11 +551,16 @@ function closeSettings() {
 
 function saveAndStart() {
   CONFIG.apiKey = document.getElementById('api-key').value;
-  CONFIG.chatId = document.getElementById('chat-id').value;
+  // ID Girişi ve Temizleme
+  let rawInput = document.getElementById('chat-id').value;
+  if(rawInput.includes("youtube.com/channel/")) {
+      rawInput = rawInput.split("channel/")[1].split("/")[0].split("?")[0];
+  }
+  CONFIG.channelId = rawInput.trim();
   CONFIG.duration = parseInt(document.getElementById('round-time').value);
   
   localStorage.setItem('u_api', CONFIG.apiKey);
-  localStorage.setItem('u_chat', CONFIG.chatId);
+  localStorage.setItem('u_channel', CONFIG.channelId);
   localStorage.setItem('u_time', CONFIG.duration);
   
   closeSettings();
@@ -560,9 +572,7 @@ function saveAndStart() {
       audio.muted = true;
       let p = audio.play();
       if(p !== undefined) {
-          p.then(_ => {
-              audio.pause(); audio.currentTime = 0; audio.muted = false;
-          }).catch(e => console.log("Audio skipped"));
+          p.then(_ => { audio.pause(); audio.currentTime = 0; audio.muted = false; }).catch(e=>{});
       }
   });
 
@@ -574,13 +584,12 @@ function saveAndStart() {
   if(!CONFIG.muted) safePlay(UI.audio.amb);
   
   resetRound();
-  if(CONFIG.apiKey) fetchChat();
+  // OTOMATİK BAĞLANTIYI TETİKLE
+  if(CONFIG.apiKey && CONFIG.channelId) findLiveStreamAndConnect();
 }
 
 async function safePlay(audioElem) {
-    try {
-        if(audioElem.readyState >= 2) await audioElem.play();
-    } catch(err) { }
+    try { if(audioElem.readyState >= 2) await audioElem.play(); } catch(err) { }
 }
 
 function toggleMute() {
@@ -842,21 +851,58 @@ function toggleTestMode() {
   }
 }
 
-// --- YOUTUBE API ---
+// --- OTOMATİK BAŞLATICI ---
+// Sayfa yüklendiğinde hafızadaki bilgilerle otomatik başlamayı dene
+window.addEventListener('load', () => {
+    if(CONFIG.apiKey && CONFIG.channelId) {
+        console.log("Kayıtlı bilgiler bulundu, otomatik başlatılıyor...");
+        saveAndStart();
+    }
+});
+
+// --- YENİ OTOMATİK YAYIN BULUCU API FONKSİYONLARI ---
 let nextPageToken = null;
 let liveChatId = null;
 let isFetching = false;
 
-async function fetchChat() {
-    if (!CONFIG.apiKey || !CONFIG.chatId) { alert("API Key ve Video ID giriniz!"); return; }
-    if (!liveChatId) {
-        try {
-            const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${CONFIG.chatId}&key=${CONFIG.apiKey}`);
-            const data = await res.json();
-            if (!data.items || data.items.length === 0) return;
-            liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
-            setInterval(getMessages, 2000);
-        } catch (error) { console.error(error); }
+// Kanal ID kullanarak Canlı Yayını Bulur ve Chat ID'yi Çeker
+async function findLiveStreamAndConnect() {
+    if (!CONFIG.apiKey || !CONFIG.channelId) { alert("API Key veya Kanal ID eksik!"); return; }
+
+    try {
+        console.log("Canlı yayın aranıyor...", CONFIG.channelId);
+        
+        // 1. ADIM: Kanalın o anki "active" canlı yayınını bul
+        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CONFIG.channelId}&eventType=live&type=video&key=${CONFIG.apiKey}`;
+        const res = await fetch(searchUrl);
+        const data = await res.json();
+
+        if (!data.items || data.items.length === 0) {
+            console.log("Şu an canlı yayın yok. 10 saniye sonra tekrar denenecek...");
+            setTimeout(findLiveStreamAndConnect, 10000); // 10 saniye sonra tekrar dene
+            return;
+        }
+
+        const videoId = data.items[0].id.videoId;
+        console.log("Canlı Yayın Bulundu! Video ID:", videoId);
+        
+        // 2. ADIM: Video ID'den Chat ID'yi bul
+        const videoUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`;
+        const resVideo = await fetch(videoUrl);
+        const dataVideo = await resVideo.json();
+
+        if (dataVideo.items && dataVideo.items.length > 0) {
+            liveChatId = dataVideo.items[0].liveStreamingDetails.activeLiveChatId;
+            console.log("Chat ID Alındı:", liveChatId);
+            
+            // Mesajları çekmeye başla
+            // Eğer önceki bir interval varsa temizle
+            if(window.chatInterval) clearInterval(window.chatInterval);
+            window.chatInterval = setInterval(getMessages, 2000);
+        }
+
+    } catch (error) {
+        console.error("Bağlantı hatası:", error);
     }
 }
 
