@@ -156,10 +156,8 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 // --- CONFIGURATION ---
 const urlParams = new URLSearchParams(window.location.search);
 
-// Kullanıcının verdiği Channel ID buraya eklendi
+// ARTIK SADECE SÜRE VE SES AYARI KALDI - API KEY GEREKMEZ
 let CONFIG = {
-  apiKey: urlParams.get('key') || 'BURAYA_API_KEY_YAPISTIR', 
-  channelId: 'UCfJEePTnV3yWuFVxjNDMTQw', // SABİT KANAL ID
   duration: parseInt(urlParams.get('time')) || 60,
   muted: false
 };
@@ -257,12 +255,8 @@ function initGame() {
   UI.audio.amb.volume = 0.3; UI.audio.gs.volume = 0.5; UI.audio.fb.volume = 0.5; UI.audio.bjk.volume = 0.5;
   resetRound();
   
-  if(CONFIG.apiKey && CONFIG.apiKey !== 'BURAYA_API_KEY_YAPISTIR') {
-      console.log("API Key bulundu, canlı yayın aranıyor...");
-      fetchChat(); 
-  } else {
-      console.warn("Lütfen CONFIG içindeki API KEY alanını doldurun!");
-  }
+  // ✅ FIX 1: pollChat ARTIK OYUN BAŞLADIKTAN SONRA ÇAĞRILIYOR
+  pollChat();
 
   document.body.addEventListener('click', () => { if(!CONFIG.muted) safePlay(UI.audio.amb); }, {once:true});
 }
@@ -399,126 +393,49 @@ function endRound() {
   }, 1000);
 }
 
-// --- YOUTUBE API (PRO MODE) ---
-const seenMessages = new Set(); 
-let nextPageToken = null;
-let liveChatId = null;
+// --- NEW CHAT READER (VIA WORKER) ---
+const WORKER_URL = "https://yt-chat-proxy.dumbmuzik.workers.dev/chat";
 
-// 1. Kanalın EN YENİ videosunu bul ve Canlı mı diye bak (Activities API)
-async function findLiveVideoId() {
+let seen = new Set();
+
+async function pollChat() {
   try {
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/activities?part=contentDetails&channelId=${CONFIG.channelId}&maxResults=1&key=${CONFIG.apiKey}`
-    );
+    const res = await fetch(WORKER_URL);
     const data = await res.json();
 
-    if (!data.items || data.items.length === 0) return null;
-
-    const details = data.items[0].contentDetails;
-
-    // Canlı yayın varsa (Activities'de 'upload' altında video ID döner)
-    if (details.upload && details.upload.videoId) {
-      const videoId = details.upload.videoId;
-
-      // Videonun canlı olup olmadığını doğrula (Videos API)
-      const liveCheck = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`
-      );
-      const liveData = await liveCheck.json();
-
-      if (
-        liveData.items &&
-        liveData.items[0] &&
-        liveData.items[0].liveStreamingDetails &&
-        liveData.items[0].liveStreamingDetails.activeLiveChatId
-      ) {
-        return videoId;
-      }
-    }
-  } catch (e) {
-    console.error("Live video tespiti hatası:", e);
-  }
-
-  return null;
-}
-
-// 2. Chat ID'yi bul ve Akıllı Polling'i başlat
-async function fetchChat() {
-  try {
-    const videoId = await findLiveVideoId();
-    if (!videoId) {
-      console.log("Canlı yayın bulunamadı, 5 saniye sonra tekrar deneniyor...");
-      setTimeout(fetchChat, 5000); 
+    if (!data.live) {
+      setTimeout(pollChat, 5000);
       return;
     }
 
-    const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`
-    );
-    const data = await res.json();
-    
-    if (!data.items || data.items.length === 0) return;
+    // ✅ FIX 2: BELLEK KORUMASI
+    if (seen.size > 500) {
+      seen.clear();
+    }
 
-    liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
-    console.log("Chat'e bağlanıldı! ID:", liveChatId);
-    
-    // Polling'i başlat (setInterval YERİNE recursive setTimeout kullanacağız)
-    getMessages(); 
+    data.messages.forEach(msg => {
+      const key = msg.user + "|" + msg.text;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      // ✅ FIX 3: REGEX KONTROLÜ (Başlangıç eşleşmesi + Lowercase)
+      const text = msg.text.toLowerCase();
+
+      if (/^gs\b/.test(text)) processVote("gs", msg.user);
+      else if (/^fb\b/.test(text)) processVote("fb", msg.user);
+      else if (/^bjk\b/.test(text)) processVote("bjk", msg.user);
+    });
+
+    setTimeout(pollChat, data.poll || 3000);
 
   } catch (e) {
-    console.error("Chat başlatılamadı:", e);
-    setTimeout(fetchChat, 5000);
+    console.error("Chat proxy error", e);
+    setTimeout(pollChat, 7000);
   }
 }
 
-// 3. Mesajları Oku (AKILLI POLLING SİSTEMİ)
-async function getMessages() {
-    if (!liveChatId) return;
-
-    try {
-        let url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${CONFIG.apiKey}`;
-        if (nextPageToken) url += `&pageToken=${nextPageToken}`;
-        
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        // Next Page Token güncelle
-        if (data.nextPageToken) nextPageToken = data.nextPageToken;
-        
-        if (data.items && data.items.length > 0) {
-            data.items.forEach(item => {
-                // FIX: Çifte Oy Koruması
-                if(seenMessages.has(item.id)) return;
-                seenMessages.add(item.id);
-
-                // Oyun aktif değilse oyları işleme ama mesajları "görüldü" olarak işaretle
-                if(!STATE.active) return;
-
-                const msg = item.snippet.displayMessage.toLowerCase();
-                const user = item.authorDetails.displayName;
-                let multiplier = 1;
-                
-                if (item.snippet.type === 'superChatEvent' || item.authorDetails.isChatSponsor) {
-                    multiplier = 5; notifySubscriber(user);
-                }
-
-                if (msg.includes("gs") || msg.includes("cimbom")) processVote('gs', user, multiplier);
-                else if (msg.includes("fb") || msg.includes("fener")) processVote('fb', user, multiplier);
-                else if (msg.includes("bjk") || msg.includes("kartal")) processVote('bjk', user, multiplier);
-            });
-        }
-
-        // FIX: API KOTA KORUMASI
-        // YouTube'un "bana şu kadar milisaniye sonra gel" dediği süreyi kullanıyoruz.
-        // Eğer API bu bilgiyi vermezse varsayılan olarak 5000ms (5sn) bekliyoruz.
-        const nextPoll = data.pollingIntervalMillis || 5000;
-        setTimeout(getMessages, nextPoll);
-
-    } catch (error) { 
-        console.error("API Hatası, tekrar deneniyor...", error);
-        setTimeout(getMessages, 10000); // Hata durumunda 10sn bekle
-    }
-}
+// ❌ ARTIK BURADA ÇAĞIRMIYORUZ! initGame İÇİNE TAŞINDI.
+// pollChat(); 
 
 window.onload = initGame;
 </script>
