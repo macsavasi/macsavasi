@@ -496,9 +496,6 @@ async function pollChat() {
     }
 
     data.messages.forEach(msg => {
-      const key = msg.user + "|" + msg.text;
-      if (seen.has(key)) return;
-      seen.add(key);
 
       // ✅ FIX 3: REGEX KONTROLÜ (Başlangıç eşleşmesi + Lowercase)
       const text = msg.text.toLowerCase();
