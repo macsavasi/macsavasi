@@ -400,27 +400,45 @@ function endRound() {
 }
 
 // --- YOUTUBE API (PRO MODE) ---
-// YENİ ÖZELLİK: Tekrar eden mesajları engellemek için Set
 const seenMessages = new Set(); 
 let nextPageToken = null;
 let liveChatId = null;
 
-// 1. Kanalın EN YENİ canlı yayınını bul (order=date eklendi!)
+// 1. Kanalın EN YENİ videosunu bul ve Canlı mı diye bak (Activities API)
 async function findLiveVideoId() {
   try {
-    console.log(`Kanal ID kontrol ediliyor: ${CONFIG.channelId}`);
-    // FIX: order=date EKLENDİ (Geç algılama sorununu çözer)
     const res = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${CONFIG.channelId}&eventType=live&type=video&order=date&key=${CONFIG.apiKey}`
+      `https://www.googleapis.com/youtube/v3/activities?part=contentDetails&channelId=${CONFIG.channelId}&maxResults=1&key=${CONFIG.apiKey}`
     );
     const data = await res.json();
-    if (data.items && data.items.length > 0) {
-      console.log("Canlı yayın bulundu! ID:", data.items[0].id.videoId);
-      return data.items[0].id.videoId;
+
+    if (!data.items || data.items.length === 0) return null;
+
+    const details = data.items[0].contentDetails;
+
+    // Canlı yayın varsa (Activities'de 'upload' altında video ID döner)
+    if (details.upload && details.upload.videoId) {
+      const videoId = details.upload.videoId;
+
+      // Videonun canlı olup olmadığını doğrula (Videos API)
+      const liveCheck = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoId}&key=${CONFIG.apiKey}`
+      );
+      const liveData = await liveCheck.json();
+
+      if (
+        liveData.items &&
+        liveData.items[0] &&
+        liveData.items[0].liveStreamingDetails &&
+        liveData.items[0].liveStreamingDetails.activeLiveChatId
+      ) {
+        return videoId;
+      }
     }
   } catch (e) {
-    console.error("Live video arama hatası:", e);
+    console.error("Live video tespiti hatası:", e);
   }
+
   return null;
 }
 
