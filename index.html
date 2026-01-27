@@ -1,621 +1,804 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flag Battle Royale - Stream Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
-    <style>
-        body {
-            margin: 0; overflow: hidden; background-color: #050505;
-            font-family: 'Roboto', sans-serif; touch-action: none; user-select: none;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ULTRA BATTLE ARENA vFinal - AUTO MODE</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
-        /* Arka Plan */
-        #bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle at center, #1a0b2e 0%, #000000 90%);
-            z-index: -1;
-        }
+<style>
+:root {
+  --gs-primary: #A90432; 
+  --fb-primary: #002D72; 
+  --bjk-primary: #111;
+  --bg-dark: #050505;
+}
 
-        canvas { display: block; width: 100vw; height: 100vh; }
+body {
+  margin: 0;
+  background-color: var(--bg-dark);
+  background-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0), rgba(0,0,0,1));
+  color: #fff;
+  font-family: 'Montserrat', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  transition: background-color 1s ease;
+}
 
-        /* --- STREAM HUD (YENİ EKLENENLER) --- */
-        .hud-panel {
-            position: absolute; z-index: 15; pointer-events: none;
-            display: flex; align-items: center; gap: 10px;
-        }
+/* Lider arka plan renkleri */
+body.leader-gs { background-color: #1a0005; }
+body.leader-fb { background-color: #00051a; }
+body.leader-bjk { background-color: #111; }
 
-        /* 1. Radyo Bilgisi (Sağ Üst) */
-        #radio-panel {
-            top: 20px; right: 20px;
-            background: rgba(0, 0, 0, 0.6);
-            padding: 8px 15px; border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #00ff9d; font-size: 0.9rem;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .eq-bar {
-            width: 3px; background: #00ff9d; animation: eq 0.8s infinite ease-in-out;
-        }
-        .eq-1 { height: 10px; animation-delay: 0s; }
-        .eq-2 { height: 15px; animation-delay: 0.2s; }
-        .eq-3 { height: 8px; animation-delay: 0.4s; }
+/* --- WEATHER EFFECTS (Otomatik Tetiklenebilir) --- */
+#weather-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 5; opacity: 0.6;
+}
+.rain {
+    background: url('https://i.imgur.com/7Q3l9M4.png');
+    animation: rain 0.5s linear infinite;
+}
+.snow {
+    background: url('https://i.imgur.com/8xL1q2p.png');
+    animation: snow 10s linear infinite;
+}
 
-        /* 2. Saat ve LIVE (Sol Üst) */
-        #live-panel {
-            top: 20px; left: 20px;
-            color: white; font-weight: bold; font-size: 1.2rem;
-        }
-        .live-badge {
-            background: #ff0000; color: white; padding: 2px 8px;
-            border-radius: 4px; font-size: 0.9rem; margin-right: 10px;
-            animation: livePulse 1.5s infinite;
-        }
-        #clock { font-family: 'Black Ops One'; letter-spacing: 1px; }
+/* --- BOSS BATTLE UI --- */
+#boss-container {
+    position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+    width: 60%; z-index: 100; display: none; flex-direction: column; align-items: center;
+}
+#boss-container.active { display: flex; animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.boss-avatar {
+    width: 120px; height: 120px; border-radius: 50%; border: 4px solid #f00;
+    box-shadow: 0 0 30px #f00; background: #000; object-fit: cover;
+    animation: pulseBoss 1s infinite;
+}
+.boss-health-bar {
+    width: 100%; height: 20px; background: #330000; border: 2px solid #500;
+    border-radius: 10px; margin-top: 10px; overflow: hidden; position: relative;
+}
+.boss-health-fill {
+    width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d);
+    transition: width 0.2s;
+}
+.boss-damage-text {
+    position: absolute; color: #fff; font-weight: bold; font-family: 'Bebas Neue';
+    top: -5px; width: 100%; text-align: center; text-shadow: 0 0 5px #000;
+}
 
-        /* 5. Canlı Veri / Sayaç (Alt Orta - Kancanın üstü) */
-        #stats-panel {
-            bottom: 20%; left: 50%; transform: translateX(-50%);
-            text-align: center;
-        }
-        .counter-box {
-            font-family: 'Black Ops One'; font-size: 4rem;
-            color: #fff; text-shadow: 0 0 20px rgba(0,255,255,0.5);
-            line-height: 1;
-        }
-        .counter-label {
-            font-size: 1rem; color: #aaa; text-transform: uppercase; letter-spacing: 3px;
-        }
+/* --- PROMO MARQUEE --- */
+.promo-bar {
+    width: 100%; max-width: 600px; height: 30px;
+    background: rgba(0,0,0,0.6); border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 15px; overflow: hidden; margin-bottom: 10px;
+    display: flex; align-items: center; position: relative;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.1);
+}
+.promo-content {
+    white-space: nowrap; position: absolute; will-change: transform;
+    animation: promoScroll 20s linear infinite; font-size: 13px;
+    color: #ffd700; font-weight: 700; letter-spacing: 1px;
+    text-shadow: 0 1px 2px #000;
+}
+@keyframes promoScroll {
+    0% { transform: translateX(100%); left: 100%; }
+    100% { transform: translateX(-100%); left: 0; }
+}
 
-        /* --- MEVCUT UI --- */
-        .hook-text {
-            position: absolute; width: 100%; text-align: center;
-            text-transform: uppercase; color: #fff; pointer-events: none; z-index: 10;
-            text-shadow: 0 0 15px rgba(0,0,0,0.8);
-        }
+/* --- ABONE BİLDİRİM ALANI --- */
+#sub-notification-area {
+    position: fixed; top: 150px; right: 20px; width: 250px;
+    height: auto; z-index: 999; display: flex; flex-direction: column;
+    gap: 10px; pointer-events: none;
+}
+.sub-card {
+    background: linear-gradient(90deg, #aa00aa, #4400cc); color: white;
+    padding: 10px 15px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    display: flex; align-items: center; gap: 10px; font-family: 'Montserrat', sans-serif;
+    transform: translateX(120%); animation: slideInSub 4s forwards;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.sub-icon { font-size: 18px; color: #ffd700; animation: bounce 1s infinite; }
+.sub-text { display: flex; flex-direction: column; }
+.sub-name { font-weight: 800; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 150px; }
+.sub-action { font-size: 10px; opacity: 0.8; }
+@keyframes slideInSub {
+    0% { transform: translateX(120%); opacity: 0; }
+    10% { transform: translateX(0); opacity: 1; }
+    85% { transform: translateX(0); opacity: 1; }
+    100% { transform: translateX(120%); opacity: 0; }
+}
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
-        .top-hook {
-            top: 8%; font-family: 'Black Ops One', cursive; font-size: 2.8rem;
-            color: #00ffff; letter-spacing: 2px;
-            text-shadow: 0 0 20px #00ffff;
-            animation: pulse 2s infinite;
-        }
+/* --- GOAL BAR --- */
+.goal-bar-wrap {
+  position: fixed; top: 0; left: 0; width: 100%; height: 8px;
+  background: rgba(255,255,255,0.1); z-index: 100;
+}
+.goal-bar-fill {
+  height: 100%; width: 0%; background: linear-gradient(90deg, #ffd700, #ffae00);
+  transition: width 0.5s; box-shadow: 0 0 10px #ffd700;
+}
+.goal-text {
+  position: fixed; top: 10px; width: 100%; text-align: center;
+  font-size: 12px; font-weight: bold; letter-spacing: 2px; color: #aaa; z-index: 101;
+  text-shadow: 0 1px 2px #000;
+}
 
-        .bottom-hook {
-            bottom: 5%; /* Biraz daha aşağı çektim sayaç için */
-            font-size: 1.2rem; font-weight: 900;
-            background: linear-gradient(90deg, transparent, rgba(255, 0, 85, 0.8), transparent);
-            padding: 8px 0; color: #fff; letter-spacing: 1px;
-        }
+/* --- MERKEZİ PANEL --- */
+.central-dashboard {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-top: 30px; z-index: 10; flex: 0 0 auto; position: relative;
+}
+.round-box {
+  background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px 40px;
+  border-radius: 30px; margin-bottom: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px;
+}
+.round-label { font-family: 'Montserrat', sans-serif; font-weight: 700; letter-spacing: 2px; font-size: 14px; color: #aaa; }
+.round-val { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: #ffd700; line-height: 1; }
 
-        /* Kazanan Ekranı */
-        #winnerOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.9); z-index: 20;
-        }
+.top-scoreboard {
+  display: flex; gap: 30px; margin-bottom: 5px;
+  background: rgba(0,0,0,0.6); padding: 8px 25px; border-radius: 15px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.score-badge { 
+  display: flex; align-items: center; gap: 8px; 
+  font-family: 'Bebas Neue'; font-size: 24px; color: #888; transition: 0.3s;
+}
+.score-badge.active { color: #fff; transform: scale(1.1); text-shadow: 0 0 10px currentColor; }
+.score-badge span { color: #fff; font-size: 24px; margin-left: 2px; }
 
-        #w-flag {
-            width: 180px; height: 180px; border-radius: 50%;
-            border: 8px solid #FFD700; box-shadow: 0 0 80px #FFD700;
-            object-fit: cover; margin-bottom: 20px; animation: spin 10s linear infinite;
-        }
+.timer-container { text-align: center; z-index: 5; margin-bottom: 10px; position: relative; }
+.timer {
+  font-family: 'Bebas Neue', sans-serif; font-size: 90px; line-height: 0.9;
+  background: -webkit-linear-gradient(#fff, #aaa); -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 20px rgba(255,255,255,0.2));
+}
+.timer.danger { 
+  background: -webkit-linear-gradient(#ff3b3b, #800000); -webkit-background-clip: text;
+  animation: pulse 0.8s infinite; 
+}
 
-        #w-title { font-family: 'Black Ops One'; font-size: 3.5rem; color: #FFD700; margin: 0; }
-        #w-name { font-size: 2rem; color: #fff; text-transform: uppercase; font-weight: bold; margin-top: 10px; }
-        #timer { margin-top: 30px; font-size: 1.5rem; color: #888; }
+.event-x2 {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+  background: radial-gradient(circle, #ff0000, #550000); padding: 10px 25px; 
+  border-radius: 15px; border: 2px solid #ffd700;
+  box-shadow: 0 0 30px #ff0000; z-index: 200; pointer-events: none;
+  font-family: 'Bebas Neue'; color: #fff; text-align: center;
+  transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.event-x2.active { transform: translate(-50%, -50%) scale(1); animation: shake 0.5s infinite; }
+.event-x2 h1 { margin: 0; font-size: 36px; line-height: 1; text-shadow: 2px 2px 0 #000; }
+.event-x2 p { margin: 0; font-size: 12px; letter-spacing: 2px; }
 
-        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.02);} 100% {transform: scale(1);} }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes livePulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        @keyframes eq { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.5); } }
+/* --- ARENA --- */
+.arena {
+  display: flex; justify-content: center; align-items: flex-end;
+  flex-grow: 1; gap: 20px; padding: 0 40px 60px 40px;
+  position: relative; height: 100%;
+}
+.team-col {
+  flex: 1; max-width: 300px; height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end; position: relative;
+}
+.bar-container {
+  width: 100%; height: 100%; background: rgba(255,255,255,0.02);
+  border-radius: 20px 20px 0 0; position: relative; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 0 30px rgba(0,0,0,0.3);
+  transition: border-color 0.2s; will-change: transform;
+}
+.tribune {
+    position: absolute; bottom: 0; left: 0; width: 100%; height: 120px;
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/2/23/Crowd_silhouette.svg/1280px-Crowd_silhouette.svg.png');
+    background-size: cover; background-position: bottom center;
+    opacity: 0.6; z-index: 6; pointer-events: none;
+    mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+    animation: crowdJump 1s infinite alternate;
+}
+.gs .tribune { filter: drop-shadow(0 0 5px #A90432); }
+.fb .tribune { filter: drop-shadow(0 0 5px #002D72); }
+.bjk .tribune { filter: drop-shadow(0 0 5px #fff); }
+.is-leader .tribune { opacity: 0.9; animation: crowdJump 0.3s infinite alternate; }
 
-    </style>
+.crown-icon {
+  position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+  font-size: 50px; color: #ffd700; opacity: 0; z-index: 40;
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));
+}
+.is-leader .crown-icon { top: 25px; opacity: 1; animation: floatCrown 3s ease-in-out infinite; }
+
+.bar-fill {
+  position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+  transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); min-height: 140px; z-index: 5;
+}
+.bar-fill::after {
+  content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+  background: #fff; box-shadow: 0 0 20px #fff; opacity: 0.8;
+}
+.gs .bar-fill { background: linear-gradient(to top, #300000, var(--gs-primary)); box-shadow: 0 0 60px var(--gs-primary); }
+.fb .bar-fill { background: linear-gradient(to top, #000030, var(--fb-primary)); box-shadow: 0 0 60px var(--fb-primary); }
+.bjk .bar-fill { background: linear-gradient(to top, #111, #444); box-shadow: 0 0 60px rgba(255,255,255,0.2); }
+
+.team-content {
+  position: absolute; bottom: 20px; width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  z-index: 20; text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+}
+.team-logo {
+  width: 90px; height: 90px; object-fit: contain; margin-bottom: 5px;
+  filter: drop-shadow(0 10px 20px rgba(0,0,0,0.6)); transition: transform 0.3s;
+}
+.is-leader .team-logo { transform: scale(1.15); }
+.vote-count { font-family: 'Bebas Neue'; font-size: 70px; line-height: 0.9; }
+
+.mvp-box {
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  padding: 4px 12px; border-radius: 6px; margin-top: 8px;
+  border: 1px solid rgba(255,255,255,0.15); text-align: center;
+  min-width: 100px; opacity: 0; transition: opacity 0.5s;
+}
+.mvp-box.visible { opacity: 1; }
+.mvp-title { font-size: 9px; color: #ffd700; letter-spacing: 1px; font-weight: bold; }
+.mvp-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+.mvp-score { font-size: 11px; color: #ccc; }
+.captain-badge { color: #ffd700; font-size: 10px; margin-right: 3px; display: none; }
+.has-captain .captain-badge { display: inline-block; }
+
+/* --- TICKER --- */
+.ticker-wrap {
+  position: fixed; bottom: 0; width: 100%; height: 45px;
+  background: #000; border-top: 2px solid #222;
+  display: flex; align-items: center; overflow: hidden; z-index: 50;
+}
+.ticker-head {
+  background: #ffd700; color: #000; padding: 0 20px; height: 100%;
+  display: flex; align-items: center; font-weight: 900; letter-spacing: 1px;
+  box-shadow: 10px 0 20px rgba(0,0,0,0.8); z-index: 2;
+}
+.ticker-move { display: inline-block; white-space: nowrap; padding-left: 100%; animation: ticker 25s linear infinite; }
+.t-item { display: inline-flex; align-items: center; margin-right: 40px; font-size: 15px; color: #888; }
+.t-item b { color: #fff; margin-right: 5px; font-weight: 700; }
+.t-gs { color: #ff4d4d; } .t-fb { color: #4da6ff; } .t-bjk { color: #fff; }
+
+/* --- WINNER OVERLAY --- */
+#overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.95); z-index: 2000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.5s;
+}
+#overlay.active { opacity: 1; pointer-events: all; }
+
+/* --- ANIMATIONS --- */
+@keyframes ticker { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+@keyframes floatCrown { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-5px); } }
+@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-1deg); } 75% { transform: translateX(5px) rotate(1deg); } 100% { transform: translateX(0); } }
+@keyframes rain { 0% { background-position: 0 0; } 100% { background-position: 0 1000px; } }
+@keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 100px 1000px; } }
+@keyframes crowdJump { 0% { transform: translateY(0); } 100% { transform: translateY(-5px); } }
+@keyframes dropIn { 0% { transform: translateX(-50%) translateY(-200px); } 100% { transform: translateX(-50%) translateY(0); } }
+@keyframes pulseBoss { 0% { transform: scale(1); box-shadow: 0 0 30px #f00; } 50% { transform: scale(1.05); box-shadow: 0 0 50px #f00; } 100% { transform: scale(1); box-shadow: 0 0 30px #f00; } }
+
+</style>
 </head>
+
 <body>
 
-    <div id="bg"></div>
-    
-    <div id="live-panel" class="hud-panel">
-        <span class="live-badge">● LIVE</span>
-        <span id="clock">00:00:00</span>
-    </div>
+<div id="weather-layer"></div>
+<div id="sub-notification-area"></div>
 
-    <div id="radio-panel" class="hud-panel">
-        <div style="display:flex; gap:2px; align-items:flex-end; height:15px;">
-            <div class="eq-bar eq-1"></div>
-            <div class="eq-bar eq-2"></div>
-            <div class="eq-bar eq-3"></div>
+<div class="goal-bar-wrap">
+    <div class="goal-bar-fill" id="goal-bar-fill"></div>
+</div>
+<div class="goal-text">HEDEF: 1000 OY</div>
+
+<div id="boss-container">
+    <img src="https://cdn-icons-png.flaticon.com/512/3815/3815591.png" class="boss-avatar">
+    <div class="boss-health-bar">
+        <div class="boss-health-fill" id="boss-hp-fill"></div>
+        <div class="boss-damage-text" id="boss-hp-text">100%</div>
+    </div>
+</div>
+
+<div class="event-x2" id="event-x2">
+    <h1>x2 PUAN!</h1>
+    <p>10 SANİYE BOYUNCA</p>
+</div>
+
+<div class="central-dashboard">
+    <div class="promo-bar">
+        <div class="promo-content">
+            <i class="fa-solid fa-bullhorn"></i> HOŞ GELDİNİZ! TAKIMLARINIZA OY VEREREK DESTEK OLUN! -- ABONE OLARAK İSMİNİZİ EKRANA YAZDIRIN! -- KAZANAN TAKIM MARŞINI ÇALDIRIR! -- GS YAZ, FB YAZ, BJK YAZ DESTEKLE! -- YAYINI BEĞENMEYİ UNUTMAYIN!
         </div>
-        <span>SomaFM • Groove Salad</span>
     </div>
 
-    <div id="stats-panel" class="hud-panel">
-        <div class="counter-box" id="alive-counter">00</div>
-        <div class="counter-label">ALIVE / <span id="total-counter">00</span></div>
-    </div>
-    <div class="hook-text top-hook">FLAG BATTLE<br>ROYALE</div>
-    <div class="hook-text bottom-hook">LAST ONE STANDING WINS! 🏆</div>
-
-    <div id="winnerOverlay">
-        <div id="w-title">WINNER</div>
-        <img id="w-flag" src="" alt="">
-        <div id="w-name">COUNTRY</div>
-        <div id="timer">NEXT ROUND SOON...</div>
+    <div class="round-box">
+        <div class="round-label">ROUND</div>
+        <div class="round-val" id="round-num">1</div>
     </div>
 
-    <canvas id="gameCanvas"></canvas>
+    <div class="top-scoreboard">
+        <div class="score-badge" id="badge-gs"><i class="fa-solid fa-trophy"></i> GS <span id="total-gs">0</span></div>
+        <div class="score-badge" id="badge-fb"><i class="fa-solid fa-trophy"></i> FB <span id="total-fb">0</span></div>
+        <div class="score-badge" id="badge-bjk"><i class="fa-solid fa-trophy"></i> BJK <span id="total-bjk">0</span></div>
+    </div>
 
-    <audio id="bgMusic" loop preload="auto">
-        <source src="https://ice1.somafm.com/groovesalad-128-mp3" type="audio/mpeg">
-    </audio>
+    <div class="timer-container">
+        <div id="timer" class="timer">60</div>
+    </div>
+</div>
+
+<div class="arena">
+  <div class="team-col gs" id="col-gs">
+    <div class="bar-container">
+      <i class="fa-solid fa-crown crown-icon"></i>
+      <div class="bar-fill" id="bar-gs"></div>
+      <div class="tribune"></div>
+      <div class="team-content">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png" class="team-logo">
+        <div class="vote-count" id="score-gs">0</div>
+        <div class="mvp-box" id="mvp-gs">
+            <div class="mvp-title">MVP</div>
+            <div class="mvp-name"><i class="fa-solid fa-star captain-badge"></i>-</div>
+            <div class="mvp-score">0 Oy</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="team-col fb" id="col-fb">
+    <div class="bar-container">
+      <i class="fa-solid fa-crown crown-icon"></i>
+      <div class="bar-fill" id="bar-fb"></div>
+      <div class="tribune"></div>
+      <div class="team-content">
+        <img src="https://upload.wikimedia.org/wikipedia/tr/8/86/Fenerbah%C3%A7e_SK.png" class="team-logo">
+        <div class="vote-count" id="score-fb">0</div>
+        <div class="mvp-box" id="mvp-fb">
+            <div class="mvp-title">MVP</div>
+            <div class="mvp-name"><i class="fa-solid fa-star captain-badge"></i>-</div>
+            <div class="mvp-score">0 Oy</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="team-col bjk" id="col-bjk">
+    <div class="bar-container">
+      <i class="fa-solid fa-crown crown-icon"></i>
+      <div class="bar-fill" id="bar-bjk"></div>
+      <div class="tribune"></div>
+      <div class="team-content">
+        <img src="https://upload.wikimedia.org/wikipedia/sco/4/47/Besiktas_JK%27s_official_logo.png" class="team-logo">
+        <div class="vote-count" id="score-bjk">0</div>
+        <div class="mvp-box" id="mvp-bjk">
+            <div class="mvp-title">MVP</div>
+            <div class="mvp-name"><i class="fa-solid fa-star captain-badge"></i>-</div>
+            <div class="mvp-score">0 Oy</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ticker-wrap">
+  <div class="ticker-head">CANLI AKIŞ</div>
+  <div class="ticker-move" id="ticker-content"></div>
+</div>
+
+<div id="overlay">
+  <h1 id="win-title" style="font-family:'Bebas Neue'; font-size:100px; color:#fff; margin:0; text-transform:uppercase;">KAZANAN</h1>
+  <img id="win-img" src="" style="width:250px; height:250px; object-fit:contain; margin:30px 0;">
+  <div id="win-msg" style="font-size:30px; color:#ccc;">Tebrikler!</div>
+  <div id="last-hit-display" style="margin-top:20px; font-size:24px; color:#ff4d4d; font-weight:bold; letter-spacing:1px; background:rgba(0,0,0,0.7); padding:5px 20px; border-radius:10px;"></div>
+  
+  <div id="next-timer" style="margin-top:40px; font-size:40px; color:#ffd700; border:2px solid #ffd700; padding:10px 40px; border-radius:50px;">Sonraki: 10</div>
+</div>
+
+<canvas id="confetti" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1500;"></canvas>
+
+<audio id="sfx-gol" src="gol.mp3"></audio> 
+<audio id="anthem-gs" src="mars_gs.mp3" loop></audio>
+<audio id="anthem-fb" src="mars_fb.mp3" loop></audio>
+<audio id="anthem-bjk" src="mars_bjk.mp3" loop></audio>
+<audio id="ambience" src="stadium.mp3" loop></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const winnerOverlay = document.getElementById('winnerOverlay');
-    const wFlag = document.getElementById('w-flag');
-    const wName = document.getElementById('w-name');
-    const timerText = document.getElementById('timer');
+// --- CONFIGURATION ---
+// Bu bölüm Workflow ile veya URL parametresi ile değiştirilebilir.
+// Örn URL: index.html?key=AIza...&id=VIDEO_ID&time=90
+const urlParams = new URLSearchParams(window.location.search);
+
+let CONFIG = {
+  // Workflow'da bu stringleri bulup (sed/grep ile) değiştirebilirsin.
+  apiKey: urlParams.get('key') || 'REPLACE_WITH_API_KEY', 
+  chatId: urlParams.get('id')  || 'REPLACE_WITH_VIDEO_ID',
+  duration: parseInt(urlParams.get('time')) || 60,
+  muted: false
+};
+
+// --- STATE MANAGEMENT ---
+let STATE = {
+  active: false,
+  round: 1,
+  time: CONFIG.duration,
+  votes: { gs: 0, fb: 0, bjk: 0 },
+  wins: { gs: 0, fb: 0, bjk: 0 },
+  mvp: { 
+    gs: { user: '-', score: 0, data: {} },
+    fb: { user: '-', score: 0, data: {} },
+    bjk: { user: '-', score: 0, data: {} }
+  },
+  totalGameVotes: 0,
+  lastHitter: null,
+  isDoublePoints: false,
+  doublePointTriggerTime: -1,
+  currentLeader: null,
+  isBossMode: false,
+  bossHP: 500,
+  maxBossHP: 500
+};
+
+// --- DOM ELEMENTS ---
+const UI = {
+  timer: document.getElementById('timer'),
+  scores: { gs: document.getElementById('score-gs'), fb: document.getElementById('score-fb'), bjk: document.getElementById('score-bjk') },
+  bars: { gs: document.getElementById('bar-gs'), fb: document.getElementById('bar-fb'), bjk: document.getElementById('bar-bjk') },
+  cols: { gs: document.getElementById('col-gs'), fb: document.getElementById('col-fb'), bjk: document.getElementById('col-bjk') },
+  badges: { gs: document.getElementById('badge-gs'), fb: document.getElementById('badge-fb'), bjk: document.getElementById('badge-bjk') },
+  total: { gs: document.getElementById('total-gs'), fb: document.getElementById('total-fb'), bjk: document.getElementById('total-bjk') },
+  mvp: {
+    gs: { name: document.querySelector('#mvp-gs .mvp-name'), score: document.querySelector('#mvp-gs .mvp-score'), box: document.getElementById('mvp-gs') },
+    fb: { name: document.querySelector('#mvp-fb .mvp-name'), score: document.querySelector('#mvp-fb .mvp-score'), box: document.getElementById('mvp-fb') },
+    bjk: { name: document.querySelector('#mvp-bjk .mvp-name'), score: document.querySelector('#mvp-bjk .mvp-score'), box: document.getElementById('mvp-bjk') }
+  },
+  audio: { 
+      gol: document.getElementById('sfx-gol'),
+      amb: document.getElementById('ambience'),
+      gs: document.getElementById('anthem-gs'),
+      fb: document.getElementById('anthem-fb'),
+      bjk: document.getElementById('anthem-bjk')
+  },
+  goalBar: document.getElementById('goal-bar-fill'),
+  x2Event: document.getElementById('event-x2'),
+  lastHitDisplay: document.getElementById('last-hit-display'),
+  weather: document.getElementById('weather-layer'),
+  bossContainer: document.getElementById('boss-container'),
+  bossFill: document.getElementById('boss-hp-fill'),
+  bossText: document.getElementById('boss-hp-text'),
+  subArea: document.getElementById('sub-notification-area')
+};
+
+// --- HELPERS ---
+function notifySubscriber(name) {
+    const card = document.createElement('div');
+    card.className = 'sub-card';
+    card.innerHTML = `
+        <i class="fa-solid fa-bell sub-icon"></i>
+        <div class="sub-text">
+            <span class="sub-name">${name}</span>
+            <span class="sub-action">ABONE OLDU!</span>
+        </div>
+    `;
+    UI.subArea.appendChild(card);
+    setTimeout(() => { card.remove(); }, 4000);
+}
+
+// Konsoldan test için: console'a toggleTestMode() yazarak botları başlatabilirsin.
+let testInterval = null;
+window.toggleTestMode = function() {
+  if(testInterval) {
+    clearInterval(testInterval); testInterval = null; console.log("Botlar durduruldu.");
+  } else {
+    console.log("Botlar başlatıldı.");
+    testInterval = setInterval(() => {
+      if(!STATE.active) return;
+      let teams = ['gs','fb','bjk'];
+      let users = ['Barış','Ahmet','Mehmet','Ayşe','Fatma','StreamLover','ProOyuncu','Kral123'];
+      let mult = Math.random() > 0.9 ? 5 : 1; 
+      if(Math.random() > 0.95) notifySubscriber("Yeni Abone_" + Math.floor(Math.random()*100));
+      processVote(teams[Math.floor(Math.random()*3)], users[Math.floor(Math.random()*users.length)], mult);
+    }, 200);
+  }
+}
+
+async function safePlay(audioElem) {
+    try {
+        if(audioElem.readyState >= 2) await audioElem.play();
+    } catch(err) { console.log("Otomatik oynatma tarayıcı tarafından engellendi. Sayfaya bir kez tıklayın."); }
+}
+
+function updateBossUI() {
+    let pct = (STATE.bossHP / STATE.maxBossHP) * 100;
+    UI.bossFill.style.width = pct + "%";
+    UI.bossText.innerText = STATE.bossHP + " HP";
+    if(STATE.bossHP <= 0) {
+        UI.bossText.innerText = "BOSS YENİLDİ!";
+        setTimeout(() => { 
+            STATE.isBossMode = false;
+            UI.bossContainer.classList.remove('active');
+        }, 3000);
+    }
+}
+
+// --- GAME LOGIC ---
+let timerInterval;
+
+function initGame() {
+  // Ses seviyeleri
+  UI.audio.amb.volume = 0.3;
+  UI.audio.gs.volume = 0.5;
+  UI.audio.fb.volume = 0.5;
+  UI.audio.bjk.volume = 0.5;
+  
+  resetRound();
+  if(CONFIG.apiKey && CONFIG.apiKey !== 'REPLACE_WITH_API_KEY') {
+      fetchChat();
+  } else {
+      console.log("API Key bulunamadı veya placeholder duruyor. Chat okunmayacak.");
+  }
+
+  // Sayfaya tıklandığında sesi aç (Browser politikası için)
+  document.body.addEventListener('click', () => {
+      if(!CONFIG.muted) safePlay(UI.audio.amb);
+  }, {once:true});
+}
+
+function resetRound() {
+  clearInterval(timerInterval);
+  STATE.active = true;
+  STATE.time = CONFIG.duration;
+  STATE.votes = { gs:0, fb:0, bjk:0 };
+  STATE.lastHitter = null;
+  STATE.currentLeader = null;
+  
+  STATE.doublePointTriggerTime = -1;
+  if(CONFIG.duration > 30) {
+      STATE.doublePointTriggerTime = Math.floor(Math.random() * (CONFIG.duration - 20)) + 10;
+  }
+  
+  ['gs','fb','bjk'].forEach(k => {
+    STATE.mvp[k] = { user: '-', score: 0, data: {} };
+    UI.mvp[k].box.classList.remove('visible');
+    UI.mvp[k].box.classList.remove('has-captain');
+    UI.audio[k].pause();
+    UI.audio[k].currentTime = 0;
+  });
+
+  document.getElementById('overlay').classList.remove('active');
+  UI.timer.classList.remove('danger');
+  
+  if(!CONFIG.muted) safePlay(UI.audio.amb);
+  updateDisplay();
+  
+  timerInterval = setInterval(() => {
+    STATE.time--;
+    UI.timer.innerText = STATE.time;
     
-    // UI Elementleri
-    const aliveCounter = document.getElementById('alive-counter');
-    const totalCounter = document.getElementById('total-counter');
-    const clockEl = document.getElementById('clock');
-    const bgMusic = document.getElementById('bgMusic');
-
-    // --- SAAT GÜNCELLEME ---
-    function updateClock() {
-        const now = new Date();
-        clockEl.innerText = now.toLocaleTimeString('tr-TR', { hour12: false });
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-
-    // --- SES MOTORU ---
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    let audioCtx;
-
-    function initAudio() {
-        if (!audioCtx) audioCtx = new AudioContext();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        // Radyoyu başlat (Promise hatasını önlemek için catch bloğu)
-        bgMusic.volume = 0.3; // Ses seviyesi %30
-        bgMusic.play().catch(e => console.log("Otomatik oynatma tarayıcı tarafından engellendi, etkileşim bekleniyor."));
+    // Rastgele Eventler
+    if(STATE.time === STATE.doublePointTriggerTime) {
+        STATE.isDoublePoints = true;
+        UI.x2Event.classList.add('active');
+        setTimeout(() => { STATE.isDoublePoints = false; UI.x2Event.classList.remove('active'); }, 10000);
     }
 
-    // İlk etkileşimde sesleri aç
-    document.addEventListener('click', () => {
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        if (bgMusic.paused) bgMusic.play();
-    }, { once: true });
+    // Boss Modu (Rastgele %5 ihtimalle her round ortasında çıkabilir)
+    if(STATE.time === Math.floor(CONFIG.duration / 2) && Math.random() > 0.95 && !STATE.isBossMode) {
+        STATE.isBossMode = true;
+        STATE.bossHP = STATE.maxBossHP;
+        UI.bossContainer.classList.add('active');
+        updateBossUI();
+    }
     
-    document.addEventListener('touchstart', () => {
-        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        if (bgMusic.paused) bgMusic.play();
-    }, { once: true });
+    if(STATE.time <= 10) UI.timer.classList.add('danger');
+    if(STATE.time <= 0) endRound();
+  }, 1000);
+}
 
-    function playSound(type) {
-        if (!audioCtx || audioCtx.state === 'suspended') return;
+function processVote(team, user, multiplier = 1) {
+  if(!STATE.active) return;
+  
+  let points = (STATE.isDoublePoints ? 2 : 1) * multiplier;
+  STATE.votes[team] += points;
+  STATE.totalGameVotes += points;
+  
+  let goalPercent = Math.min((STATE.totalGameVotes / 1000) * 100, 100);
+  UI.goalBar.style.width = goalPercent + "%";
+  
+  if(STATE.isBossMode) {
+      STATE.bossHP -= points;
+      updateBossUI();
+  }
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+  if(user) {
+      STATE.lastHitter = user;
+      if(!STATE.mvp[team].data[user]) STATE.mvp[team].data[user] = 0;
+      STATE.mvp[team].data[user] += points;
+      if(STATE.mvp[team].data[user] > STATE.mvp[team].score) {
+        STATE.mvp[team].score = STATE.mvp[team].data[user];
+        STATE.mvp[team].user = user;
+      }
+      addTicker(user, team, points);
+  }
 
-        const now = audioCtx.currentTime;
-        
-        if (type === 'bounce') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(150, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.1);
-            gain.gain.setValueAtTime(0.1, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-            osc.start(now);
-            osc.stop(now + 0.1);
-        } else if (type === 'eliminate') {
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(300, now);
-            osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-            gain.gain.setValueAtTime(0.1, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-            osc.start(now);
-            osc.stop(now + 0.3);
-        }
-    }
+  updateDisplay();
+}
 
-    // --- AYARLAR ---
-    let WIDTH, HEIGHT, CX, CY, ARENA_RADIUS;
+function updateDisplay() {
+  UI.scores.gs.innerText = STATE.votes.gs;
+  UI.scores.fb.innerText = STATE.votes.fb;
+  UI.scores.bjk.innerText = STATE.votes.bjk;
+  
+  let max = Math.max(STATE.votes.gs, STATE.votes.fb, STATE.votes.bjk, 1);
+  let leader = null;
+  let leaderScore = -1;
+
+  ['gs', 'fb', 'bjk'].forEach(t => {
+      if(STATE.votes[t] > leaderScore) leaderScore = STATE.votes[t];
+  });
+
+  let leaders = ['gs', 'fb', 'bjk'].filter(t => STATE.votes[t] === leaderScore && leaderScore > 0);
+  if(leaders.length === 1) leader = leaders[0];
+
+  // Müzik Güncelleme
+  if(leader !== STATE.currentLeader) {
+      STATE.currentLeader = leader;
+      ['gs', 'fb', 'bjk'].forEach(team => { if(team !== leader) UI.audio[team].pause(); });
+      if(leader && !CONFIG.muted) safePlay(UI.audio[leader]);
+  }
+
+  // Görsel Güncelleme
+  ['gs', 'fb', 'bjk'].forEach(t => {
+    UI.bars[t].style.height = (STATE.votes[t] / max * 100) + "%";
+    UI.cols[t].classList.remove('is-leader');
+    UI.badges[t].classList.remove('active');
     
-    function resize() {
-        WIDTH = window.innerWidth;
-        HEIGHT = window.innerHeight;
-        canvas.width = WIDTH;
-        canvas.height = HEIGHT;
-        
-        CX = WIDTH / 2;
-        CY = HEIGHT * 0.38; 
-        ARENA_RADIUS = (Math.min(WIDTH, HEIGHT) / 2) * 0.72;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    // FİZİK AYARLARI
-    const BALL_RADIUS = 13;
-    const ROTATION_SPEED = 0.025; 
-    const GAP_SIZE = Math.PI / 4.5; 
-    const GRAVITY = 0.25; 
-    const FRICTION_ARENA = 1.0; 
-    const FRICTION_AIR = 0.98;
-
-    let arenaRotation = 0;
-    let screenShake = 0;
-
-    // Ülke Listesi
-    const COUNTRIES = [
-        {c:'tr',n:'Turkey'}, {c:'us',n:'USA'}, {c:'de',n:'Germany'}, {c:'br',n:'Brazil'}, {c:'fr',n:'France'},
-        {c:'gb',n:'UK'}, {c:'it',n:'Italy'}, {c:'ru',n:'Russia'}, {c:'cn',n:'China'}, {c:'jp',n:'Japan'},
-        {c:'kr',n:'S. Korea'}, {c:'in',n:'India'}, {c:'ca',n:'Canada'}, {c:'au',n:'Australia'}, {c:'es',n:'Spain'},
-        {c:'mx',n:'Mexico'}, {c:'id',n:'Indonesia'}, {c:'sa',n:'Saudi Arabia'}, {c:'ar',n:'Argentina'},
-        {c:'ng',n:'Nigeria'}, {c:'eg',n:'Egypt'}, {c:'pk',n:'Pakistan'}, {c:'vn',n:'Vietnam'},
-        {c:'ph',n:'Philippines'}, {c:'th',n:'Thailand'}, {c:'ir',n:'Iran'}, {c:'nl',n:'Netherlands'}, {c:'pl',n:'Poland'},
-        {c:'ua',n:'Ukraine'}, {c:'co',n:'Colombia'}, {c:'se',n:'Sweden'}, {c:'az',n:'Azerbaijan'}, {c:'pt',n:'Portugal'},
-        {c:'gr',n:'Greece'}, {c:'be',n:'Belgium'}, {c:'ch',n:'Switzerland'}, {c:'at',n:'Austria'}, {c:'hu',n:'Hungary'},
-        {c:'no',n:'Norway'}, {c:'dk',n:'Denmark'}, {c:'fi',n:'Finland'}, {c:'ie',n:'Ireland'}, {c:'nz',n:'New Zealand'},
-        {c:'sg',n:'Singapore'}, {c:'my',n:'Malaysia'}, {c:'cl',n:'Chile'}, {c:'pe',n:'Peru'}, {c:'ve',n:'Venezuela'},
-        {c:'ec',n:'Ecuador'}, {c:'ma',n:'Morocco'}, {c:'dz',n:'Algeria'}, {c:'kz',n:'Kazakhstan'}, {c:'il',n:'Israel'},
-        {c:'qa',n:'Qatar'}, {c:'ae',n:'UAE'}, {c:'hr',n:'Croatia'}, {c:'rs',n:'Serbia'}, {c:'ba',n:'Bosnia'}
-    ];
-
-    let balls = [];
-    let particles = [];
-    let animationId;
-    let isGameOver = false;
-    let gameRunning = true; 
-
-    // Partikül
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.color = color;
-            this.size = Math.random() * 3 + 1;
-            this.vx = (Math.random() - 0.5) * 6;
-            this.vy = (Math.random() - 0.5) * 6;
-            this.life = 1.0; 
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.vy += 0.1; 
-            this.life -= 0.02;
-        }
-        draw(ctx) {
-            ctx.globalAlpha = this.life;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-            ctx.fill();
-            ctx.globalAlpha = 1.0;
-        }
+    if(t === leader) {
+       UI.cols[t].classList.add('is-leader');
+       UI.badges[t].classList.add('active');
     }
 
-    class Ball {
-        constructor(data) {
-            this.code = data.c;
-            this.name = data.n;
-            this.r = BALL_RADIUS;
-            
-            const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * (ARENA_RADIUS * 0.6);
-            this.x = CX + Math.cos(angle) * dist;
-            this.y = CY + Math.sin(angle) * dist;
+    if(STATE.mvp[t].score > 0) {
+      UI.mvp[t].name.innerHTML = `<i class="fa-solid fa-star captain-badge"></i>` + STATE.mvp[t].user;
+      UI.mvp[t].score.innerText = STATE.mvp[t].score + " OY";
+      UI.mvp[t].box.classList.add('visible');
+      UI.mvp[t].box.classList.add('has-captain');
+    }
+  });
+  
+  document.body.className = leader ? `leader-${leader}` : '';
+}
 
-            this.vx = (Math.random() - 0.5) * 12;
-            this.vy = (Math.random() - 0.5) * 12;
+function addTicker(user, team, points) {
+  const el = document.createElement('div');
+  el.className = 't-item';
+  let colorClass = team === 'gs' ? 't-gs' : (team === 'fb' ? 't-fb' : 't-bjk');
+  let ptText = points > 1 ? `+${points}` : `+${points}`;
+  if(points >= 5) ptText += " 🔥"; 
+  el.innerHTML = `<b>${user}</b> <span class="${colorClass}">${team.toUpperCase()} ${ptText}</span>`;
+  document.getElementById('ticker-content').prepend(el);
+  if(document.getElementById('ticker-content').children.length > 20) {
+    document.getElementById('ticker-content').lastChild.remove();
+  }
+}
 
-            this.img = new Image();
-            this.img.src = `https://flagcdn.com/w80/${this.code}.png`;
-            
-            this.state = 'ARENA'; 
-            this.rotation = 0;
-            this.rotSpeed = (Math.random() - 0.5) * 0.2;
-        }
+function endRound() {
+  clearInterval(timerInterval);
+  STATE.active = false;
+  
+  if(!CONFIG.muted) {
+      UI.audio.amb.pause(); UI.audio.gs.pause(); UI.audio.fb.pause(); UI.audio.bjk.pause();
+  }
 
-        update() {
-            if(this.state !== 'GROUNDED') this.rotation += this.rotSpeed;
+  let max = Math.max(STATE.votes.gs, STATE.votes.fb, STATE.votes.bjk);
+  let winners = Object.keys(STATE.votes).filter(k => STATE.votes[k] === max && max > 0);
+  
+  let ov = document.getElementById('overlay');
+  let title = document.getElementById('win-title');
+  let img = document.getElementById('win-img');
+  let msg = document.getElementById('win-msg');
+  let lastHit = document.getElementById('last-hit-display');
 
-            if (this.state === 'ARENA') {
-                this.x += this.vx;
-                this.y += this.vy;
+  ov.classList.add('active');
+  lastHit.innerHTML = STATE.lastHitter ? `<i class="fa-solid fa-crosshairs"></i> SON VURUŞ: ${STATE.lastHitter}` : "";
+
+  if(winners.length === 1) {
+    let w = winners[0];
+    STATE.wins[w]++;
+    UI.total[w].innerText = STATE.wins[w];
+    if(!CONFIG.muted) safePlay(UI.audio.gol);
+    
+    title.innerText = w.toUpperCase() + " KAZANDI!";
+    title.style.color = w==='gs'?'#A90432':(w==='fb'?'#002D72':'#fff');
+    if(w==='gs') img.src = "https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png";
+    if(w==='fb') img.src = "https://upload.wikimedia.org/wikipedia/tr/8/86/Fenerbah%C3%A7e_SK.png";
+    if(w==='bjk') img.src = "https://upload.wikimedia.org/wikipedia/sco/4/47/Besiktas_JK%27s_official_logo.png";
+    img.style.display = 'block';
+    
+    confetti({ particleCount: 300, spread: 120, origin: { y: 0.6 } });
+    msg.innerText = "MVP: " + STATE.mvp[w].user;
+  } else {
+    title.innerText = "BERABERLİK!";
+    title.style.color = "#fff";
+    img.style.display = 'none';
+    msg.innerText = "Kazanan çıkmadı.";
+  }
+
+  let next = 10;
+  let nextInt = setInterval(() => {
+    document.getElementById('next-timer').innerText = "Sonraki: " + (--next);
+    if(next < 0) {
+      clearInterval(nextInt);
+      STATE.round++;
+      document.getElementById('round-num').innerText = STATE.round;
+      resetRound();
+    }
+  }, 1000);
+}
+
+// --- YOUTUBE API ---
+let nextPageToken = null;
+let liveChatId = null;
+let isFetching = false;
+
+async function fetchChat() {
+    if (!liveChatId) {
+        try {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${CONFIG.chatId}&key=${CONFIG.apiKey}`);
+            const data = await res.json();
+            if (!data.items || data.items.length === 0) return;
+            liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
+            setInterval(getMessages, 2000);
+        } catch (error) { console.error("API Error:", error); }
+    }
+}
+
+async function getMessages() {
+    if (isFetching || !liveChatId || !STATE.active) return;
+    isFetching = true;
+    try {
+        let url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${liveChatId}&part=snippet,authorDetails&key=${CONFIG.apiKey}`;
+        if (nextPageToken) url += `&pageToken=${nextPageToken}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.nextPageToken) nextPageToken = data.nextPageToken;
+        if (data.items && data.items.length > 0) {
+            data.items.forEach(item => {
+                const msg = item.snippet.displayMessage.toLowerCase();
+                const user = item.authorDetails.displayName;
+                let multiplier = 1;
                 
-                this.vx *= FRICTION_ARENA;
-                this.vy *= FRICTION_ARENA;
-
-                const currentSpeed = Math.hypot(this.vx, this.vy);
-                if(currentSpeed < 2) {
-                    this.vx *= 1.1;
-                    this.vy *= 1.1;
-                }
-                if(currentSpeed > 15) {
-                    this.vx *= 0.95;
-                    this.vy *= 0.95;
+                // SuperChat veya Sponsor Yakalama
+                if (item.snippet.type === 'superChatEvent' || item.authorDetails.isChatSponsor) {
+                    multiplier = 5;
+                    notifySubscriber(user); // SuperChat atanları ekranda göster
                 }
 
-                const dist = Math.hypot(this.x - CX, this.y - CY);
-                
-                if (dist + this.r >= ARENA_RADIUS) {
-                    let angle = Math.atan2(this.y - CY, this.x - CX);
-                    if (angle < 0) angle += Math.PI * 2;
-
-                    let gapStart = (arenaRotation % (Math.PI * 2));
-                    let gapEnd = (gapStart + GAP_SIZE) % (Math.PI * 2);
-
-                    let inGap = false;
-                    if (gapStart < gapEnd) {
-                        if (angle >= gapStart && angle <= gapEnd) inGap = true;
-                    } else {
-                        if (angle >= gapStart || angle <= gapEnd) inGap = true;
-                    }
-
-                    if (inGap) {
-                        this.state = 'FALLING';
-                        screenShake = 5;
-                        playSound('eliminate');
-                        createParticles(this.x, this.y, '#fff', 5);
-                    } else {
-                        const overlap = dist + this.r - ARENA_RADIUS;
-                        const nx = (this.x - CX) / dist;
-                        const ny = (this.y - CY) / dist;
-                        this.x -= nx * overlap;
-                        this.y -= ny * overlap;
-
-                        const dot = this.vx * nx + this.vy * ny;
-                        this.vx = this.vx - 2 * dot * nx;
-                        this.vy = this.vy - 2 * dot * ny;
-                        
-                        this.vx *= 1.0; 
-                        this.vy *= 1.0;
-
-                        playSound('bounce');
-                    }
-                }
-            } 
-            else if (this.state === 'FALLING') {
-                this.vy += GRAVITY;
-                this.vx *= FRICTION_AIR;
-                this.x += this.vx;
-                this.y += this.vy;
-
-                if (this.x - this.r < 0 || this.x + this.r > WIDTH) {
-                    this.vx *= -0.7;
-                    this.x = Math.max(this.r, Math.min(WIDTH - this.r, this.x));
-                }
-
-                if (this.y + this.r >= HEIGHT - 10) {
-                    this.y = HEIGHT - 10 - this.r;
-                    this.vy *= -0.5;
-                    this.vx *= 0.9;
-                    
-                    if(Math.abs(this.vy) < 1 && Math.abs(this.vx) < 0.5) {
-                        this.state = 'GROUNDED';
-                        createParticles(this.x, this.y + this.r, '#aaa', 3);
-                    }
-                }
-            }
-            else if (this.state === 'GROUNDED') {
-                this.vx *= 0.9;
-                this.vy += GRAVITY;
-                this.x += this.vx;
-                this.y += this.vy;
-
-                if (this.y + this.r >= HEIGHT - 10) {
-                    this.y = HEIGHT - 10 - this.r;
-                    this.vy = 0;
-                }
-                if (this.x - this.r < 0) this.x = this.r;
-                if (this.x + this.r > WIDTH) this.x = WIDTH - this.r;
-            }
+                if (msg.includes("gs") || msg.includes("cimbom")) processVote('gs', user, multiplier);
+                else if (msg.includes("fb") || msg.includes("fener")) processVote('fb', user, multiplier);
+                else if (msg.includes("bjk") || msg.includes("kartal")) processVote('bjk', user, multiplier);
+            });
         }
+    } catch (error) { }
+    isFetching = false;
+}
 
-        draw() {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.rotation);
-            
-            ctx.beginPath();
-            ctx.arc(0, 0, this.r, 0, Math.PI * 2);
-            ctx.clip();
-            ctx.drawImage(this.img, -this.r, -this.r, this.r*2, this.r*2);
-            ctx.restore();
-
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-            ctx.strokeStyle = this.state === 'ARENA' ? '#fff' : '#ff0055';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            if(this.state === 'ARENA') {
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#fff';
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-            }
-        }
-    }
-
-    function createParticles(x, y, color, count) {
-        for(let i=0; i<count; i++) {
-            particles.push(new Particle(x, y, color));
-        }
-    }
-
-    function resolveCollisions() {
-        for (let i = 0; i < balls.length; i++) {
-            for (let j = i + 1; j < balls.length; j++) {
-                let b1 = balls[i];
-                let b2 = balls[j];
-
-                let dx = b2.x - b1.x;
-                let dy = b2.y - b1.y;
-                let dist = Math.hypot(dx, dy);
-
-                if (dist < b1.r + b2.r) {
-                    let overlap = (b1.r + b2.r - dist) / 2;
-                    let nx = dx / dist;
-                    let ny = dy / dist;
-
-                    b1.x -= nx * overlap;
-                    b1.y -= ny * overlap;
-                    b2.x += nx * overlap;
-                    b2.y += ny * overlap;
-
-                    let relativeVx = b2.vx - b1.vx;
-                    let relativeVy = b2.vy - b1.vy;
-                    let velNormal = relativeVx * nx + relativeVy * ny;
-
-                    if (velNormal > 0) continue;
-
-                    let restitution = 1.0; 
-                    let impulse = -(1 + restitution) * velNormal;
-                    impulse /= 2; 
-
-                    let ix = impulse * nx;
-                    let iy = impulse * ny;
-
-                    let damping = (b1.state === 'ARENA' && b2.state === 'ARENA') ? 1.0 : 0.8;
-
-                    b1.vx -= ix * damping;
-                    b1.vy -= iy * damping;
-                    b2.vx += ix * damping;
-                    b2.vy += iy * damping;
-                    
-                    if (Math.abs(velNormal) > 10 && b1.state === 'ARENA') {
-                         createParticles((b1.x+b2.x)/2, (b1.y+b2.y)/2, '#ffff00', 2);
-                         playSound('bounce');
-                    }
-                }
-            }
-        }
-    }
-
-    function drawArena() {
-        arenaRotation += ROTATION_SPEED;
-        
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = '#00ffff';
-        ctx.strokeStyle = '#00ffff';
-        ctx.lineWidth = 12;
-        ctx.lineCap = 'round';
-
-        ctx.beginPath();
-        ctx.arc(CX, CY, ARENA_RADIUS, arenaRotation + GAP_SIZE, arenaRotation + Math.PI*2);
-        ctx.stroke();
-        
-        ctx.shadowBlur = 0; 
-
-        ctx.strokeStyle = 'rgba(255, 0, 50, 0.4)';
-        ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(CX, CY, ARENA_RADIUS, arenaRotation, arenaRotation + GAP_SIZE);
-        ctx.stroke();
-    }
-
-    function animate() {
-        if (!gameRunning) return;
-
-        ctx.save();
-        if (screenShake > 0) {
-            let dx = (Math.random() - 0.5) * screenShake;
-            let dy = (Math.random() - 0.5) * screenShake;
-            ctx.translate(dx, dy);
-            screenShake *= 0.9; 
-            if(screenShake < 0.5) screenShake = 0;
-        }
-
-        ctx.clearRect(0, 0, WIDTH, HEIGHT); 
-
-        drawArena();
-
-        let activeCount = 0;
-        let survivor = null;
-
-        balls.forEach(ball => {
-            ball.update();
-            ball.draw();
-            if (ball.state === 'ARENA') {
-                activeCount++;
-                survivor = ball;
-            }
-        });
-        
-        // --- SAYACI GÜNCELLE ---
-        aliveCounter.innerText = activeCount < 10 ? '0' + activeCount : activeCount;
-        
-        for(let i = particles.length-1; i>=0; i--) {
-            particles[i].update();
-            particles[i].draw(ctx);
-            if(particles[i].life <= 0) particles.splice(i, 1);
-        }
-
-        resolveCollisions();
-        
-        ctx.restore(); 
-
-        if (activeCount <= 1 && survivor && !isGameOver) {
-            endGame(survivor);
-        } else if (activeCount === 0 && !isGameOver) {
-            resetGame();
-        } else {
-            animationId = requestAnimationFrame(animate);
-        }
-    }
-
-    function endGame(winner) {
-        isGameOver = true;
-        cancelAnimationFrame(animationId);
-        
-        wFlag.src = winner.img.src;
-        wName.innerText = winner.name;
-        winnerOverlay.style.display = 'flex';
-        
-        createParticles(WIDTH/2, HEIGHT/2, '#FFD700', 50);
-        
-        let countdown = 5;
-        timerText.innerText = `NEXT ROUND IN ${countdown}...`;
-        
-        const interval = setInterval(() => {
-            countdown--;
-            timerText.innerText = `NEXT ROUND IN ${countdown}...`;
-            if (countdown <= 0) {
-                clearInterval(interval);
-                resetGame();
-            }
-        }, 1000);
-    }
-
-    function resetGame() {
-        isGameOver = false;
-        winnerOverlay.style.display = 'none';
-        balls = [];
-        particles = [];
-        COUNTRIES.forEach(c => balls.push(new Ball(c)));
-        balls.sort(() => Math.random() - 0.5);
-        
-        // Toplam sayacı güncelle
-        totalCounter.innerText = COUNTRIES.length;
-        
-        animate();
-    }
-
-    // SAYFA YÜKLENİNCE OYUNU BAŞLAT
-    window.onload = function() {
-        initAudio(); // Ses motorunu kur (tarayıcı izin verirse çalışır)
-        resetGame(); // Görsel oyunu başlat
-    };
-
+// OYUNU OTOMATİK BAŞLAT
+window.onload = initGame;
 </script>
 </body>
 </html>
