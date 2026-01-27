@@ -8,19 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
 <style>
-/* --- CSS AYNI KALDI --- */
+/* --- CSS GÜNCELLENDİ (BOSS MODU KALDIRILDI) --- */
 :root { --gs-primary: #A90432; --fb-primary: #002D72; --bjk-primary: #111; --bg-dark: #050505; }
 body { margin: 0; background-color: var(--bg-dark); background-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0), rgba(0,0,0,1)); color: #fff; font-family: 'Montserrat', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; user-select: none; transition: background-color 1s ease; }
 body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color: #00051a; } body.leader-bjk { background-color: #111; }
 #weather-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; opacity: 0.6; }
 .rain { background: url('https://i.imgur.com/7Q3l9M4.png'); animation: rain 0.5s linear infinite; }
 .snow { background: url('https://i.imgur.com/8xL1q2p.png'); animation: snow 10s linear infinite; }
-#boss-container { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 60%; z-index: 100; display: none; flex-direction: column; align-items: center; }
-#boss-container.active { display: flex; animation: dropIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-.boss-avatar { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #f00; box-shadow: 0 0 30px #f00; background: #000; object-fit: cover; animation: pulseBoss 1s infinite; }
-.boss-health-bar { width: 100%; height: 20px; background: #330000; border: 2px solid #500; border-radius: 10px; margin-top: 10px; overflow: hidden; position: relative; }
-.boss-health-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #ff4d4d); transition: width 0.2s; }
-.boss-damage-text { position: absolute; color: #fff; font-weight: bold; font-family: 'Bebas Neue'; top: -5px; width: 100%; text-align: center; text-shadow: 0 0 5px #000; }
 .promo-bar { width: 100%; max-width: 600px; height: 30px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,215,0,0.3); border-radius: 15px; overflow: hidden; margin-bottom: 10px; display: flex; align-items: center; position: relative; box-shadow: 0 0 15px rgba(255, 215, 0, 0.1); }
 .promo-content { white-space: nowrap; position: absolute; will-change: transform; animation: promoScroll 20s linear infinite; font-size: 13px; color: #ffd700; font-weight: 700; letter-spacing: 1px; text-shadow: 0 1px 2px #000; }
 @keyframes promoScroll { 0% { transform: translateX(100%); left: 100%; } 100% { transform: translateX(-100%); left: 0; } }
@@ -89,8 +83,6 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 @keyframes rain { 0% { background-position: 0 0; } 100% { background-position: 0 1000px; } }
 @keyframes snow { 0% { background-position: 0 0; } 100% { background-position: 100px 1000px; } }
 @keyframes crowdJump { 0% { transform: translateY(0); } 100% { transform: translateY(-5px); } }
-@keyframes dropIn { 0% { transform: translateX(-50%) translateY(-200px); } 100% { transform: translateX(-50%) translateY(0); } }
-@keyframes pulseBoss { 0% { transform: scale(1); box-shadow: 0 0 30px #f00; } 50% { transform: scale(1.05); box-shadow: 0 0 50px #f00; } 100% { transform: scale(1); box-shadow: 0 0 30px #f00; } }
 </style>
 </head>
 
@@ -101,13 +93,7 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 <div class="goal-bar-wrap"><div class="goal-bar-fill" id="goal-bar-fill"></div></div>
 <div class="goal-text">HEDEF: 1000 OY</div>
 
-<div id="boss-container">
-    <img src="https://cdn-icons-png.flaticon.com/512/3815/3815591.png" class="boss-avatar">
-    <div class="boss-health-bar">
-        <div class="boss-health-fill" id="boss-hp-fill"></div>
-        <div class="boss-damage-text" id="boss-hp-text">100%</div>
-    </div>
-</div>
+<!-- BOSS CONTAINER TAMAMEN KALDIRILDI -->
 
 <div class="event-x2" id="event-x2"><h1>x2 PUAN!</h1><p>10 SANİYE BOYUNCA</p></div>
 
@@ -144,11 +130,12 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 
 <canvas id="confetti" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1500;"></canvas>
 
-<audio id="sfx-gol" src="gol.mp3"></audio> 
-<audio id="anthem-gs" src="mars_gs.mp3" loop></audio>
-<audio id="anthem-fb" src="mars_fb.mp3" loop></audio>
-<audio id="anthem-bjk" src="mars_bjk.mp3" loop></audio>
-<audio id="ambience" src="stadium.mp3" loop></audio>
+<!-- ✅ 1. KATMAN: HTML'DE AUDIO ELEMENTLERİ muted BAŞLAT -->
+<audio id="sfx-gol" src="gol.mp3" muted></audio> 
+<audio id="anthem-gs" src="mars_gs.mp3" loop muted></audio>
+<audio id="anthem-fb" src="mars_fb.mp3" loop muted></audio>
+<audio id="anthem-bjk" src="mars_bjk.mp3" loop muted></audio>
+<audio id="ambience" src="stadium.mp3" loop muted></audio>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -178,10 +165,8 @@ let STATE = {
   lastHitter: null,
   isDoublePoints: false,
   doublePointTriggerTime: -1,
-  currentLeader: null,
-  isBossMode: false,
-  bossHP: 500,
-  maxBossHP: 500
+  currentLeader: null
+  // BOSS MODU DEĞİŞKENLERİ KALDIRILDI
 };
 
 // --- DOM ELEMENTS ---
@@ -208,10 +193,8 @@ const UI = {
   x2Event: document.getElementById('event-x2'),
   lastHitDisplay: document.getElementById('last-hit-display'),
   weather: document.getElementById('weather-layer'),
-  bossContainer: document.getElementById('boss-container'),
-  bossFill: document.getElementById('boss-hp-fill'),
-  bossText: document.getElementById('boss-hp-text'),
   subArea: document.getElementById('sub-notification-area')
+  // BOSS UI ELEMENTLERİ KALDIRILDI
 };
 
 // --- HELPERS ---
@@ -234,17 +217,72 @@ window.toggleTestMode = function() {
   }, 200);
 }
 
-async function safePlay(audioElem) {
-    try { if(audioElem.readyState >= 2) await audioElem.play(); } catch(err) { console.log("Otomatik oynatma engellendi."); }
+// ✅ 3. KATMAN: SES KİLİDİNİ AÇMA FONKSİYONU
+function unlockAudioKillSwitch() {
+  if (CONFIG.muted) return;
+  
+  // Tüm sesleri topla
+  const allAudios = [
+    UI.audio.amb,
+    UI.audio.gs,
+    UI.audio.fb,
+    UI.audio.bjk,
+    UI.audio.gol
+  ];
+  
+  // Her ses için: muted true -> play -> muted false
+  allAudios.forEach(audio => {
+    // Eğer audio element yoksa veya zaten playing ise geç
+    if (!audio || !audio.paused) return;
+    
+    // muted true yap ve sessizce oynatmaya çalış
+    audio.muted = true;
+    
+    // Volume ayarla (sessiz oynatılırken)
+    if (audio.id === 'ambience') audio.volume = 0;
+    else audio.volume = 0;
+    
+    // Play promise
+    const playPromise = audio.play();
+    
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // ✅ Başarılı: unmute yap ve volume ayarla
+        audio.muted = false;
+        if (audio.id === 'ambience') audio.volume = 0.3;
+        else if (audio.id === 'sfx-gol') audio.volume = 0.7;
+        else audio.volume = 0.5;
+        
+        console.log(`✅ Audio unlocked: ${audio.id}`);
+      }).catch(err => {
+        // ❌ Başarısız: tekrar dene
+        console.log(`⚠️ First try failed for ${audio.id}:`, err);
+        setTimeout(() => {
+          audio.muted = true;
+          audio.play().then(() => {
+            audio.muted = false;
+            if (audio.id === 'ambience') audio.volume = 0.3;
+            else if (audio.id === 'sfx-gol') audio.volume = 0.7;
+            else audio.volume = 0.5;
+            console.log(`✅ Audio unlocked on retry: ${audio.id}`);
+          }).catch(e => {
+            console.log(`❌ Final fail for ${audio.id}:`, e);
+          });
+        }, 1000);
+      });
+    }
+  });
 }
 
-function updateBossUI() {
-    let pct = (STATE.bossHP / STATE.maxBossHP) * 100;
-    UI.bossFill.style.width = pct + "%";
-    UI.bossText.innerText = STATE.bossHP + " HP";
-    if(STATE.bossHP <= 0) {
-        UI.bossText.innerText = "BOSS YENİLDİ!";
-        setTimeout(() => { STATE.isBossMode = false; UI.bossContainer.classList.remove('active'); }, 3000);
+// Güncellenmiş safePlay fonksiyonu
+async function safePlay(audioElem) {
+    try { 
+        if(audioElem.readyState >= 2) {
+            await audioElem.play(); 
+            console.log(`🔊 Playing: ${audioElem.id}`);
+        }
+    } catch(err) { 
+        console.log("❌ Auto-play blocked for:", audioElem.id, err); 
     }
 }
 
@@ -252,13 +290,28 @@ function updateBossUI() {
 let timerInterval;
 
 function initGame() {
-  UI.audio.amb.volume = 0.3; UI.audio.gs.volume = 0.5; UI.audio.fb.volume = 0.5; UI.audio.bjk.volume = 0.5;
+  // ✅ 2. KATMAN: SES KİLİDİNİ AÇ (EN KRİTİK ADIM!)
+  unlockAudioKillSwitch();
+  
+  // Ses seviyelerini ayarla (unlockAudioKillSwitch içinde de ayarlanıyor ama yine de)
+  UI.audio.amb.volume = 0.3; 
+  UI.audio.gs.volume = 0.5; 
+  UI.audio.fb.volume = 0.5; 
+  UI.audio.bjk.volume = 0.5;
+  UI.audio.gol.volume = 0.7;
+  
   resetRound();
   
   // ✅ FIX 1: pollChat ARTIK OYUN BAŞLADIKTAN SONRA ÇAĞRILIYOR
   pollChat();
 
-  document.body.addEventListener('click', () => { if(!CONFIG.muted) safePlay(UI.audio.amb); }, {once:true});
+  // Body click listener artık GEREKSİZ ama yine de ekleyelim
+  document.body.addEventListener('click', () => { 
+      if(!CONFIG.muted) {
+          console.log("🖱️ User clicked, playing ambience");
+          safePlay(UI.audio.amb); 
+      }
+  }, {once:true});
 }
 
 function resetRound() {
@@ -275,12 +328,22 @@ function resetRound() {
   ['gs','fb','bjk'].forEach(k => {
     STATE.mvp[k] = { user: '-', score: 0, data: {} };
     UI.mvp[k].box.classList.remove('visible'); UI.mvp[k].box.classList.remove('has-captain');
-    UI.audio[k].pause(); UI.audio[k].currentTime = 0;
+    // Sadece pause yap, currentTime'ı sıfırlama (çünkü artık loop'lar)
+    UI.audio[k].pause();
   });
 
   document.getElementById('overlay').classList.remove('active');
   UI.timer.classList.remove('danger');
-  if(!CONFIG.muted) safePlay(UI.audio.amb);
+  
+  // Ambience'ı otomatik oynat (eğer muted değilse)
+  if(!CONFIG.muted) {
+      setTimeout(() => {
+          if (UI.audio.amb.paused) {
+              safePlay(UI.audio.amb);
+          }
+      }, 500);
+  }
+  
   updateDisplay();
   
   timerInterval = setInterval(() => {
@@ -290,10 +353,7 @@ function resetRound() {
         STATE.isDoublePoints = true; UI.x2Event.classList.add('active');
         setTimeout(() => { STATE.isDoublePoints = false; UI.x2Event.classList.remove('active'); }, 10000);
     }
-    if(STATE.time === Math.floor(CONFIG.duration / 2) && Math.random() > 0.95 && !STATE.isBossMode) {
-        STATE.isBossMode = true; STATE.bossHP = STATE.maxBossHP;
-        UI.bossContainer.classList.add('active'); updateBossUI();
-    }
+    // BOSS MODU TETİKLEMESİ KALDIRILDI
     if(STATE.time <= 10) UI.timer.classList.add('danger');
     if(STATE.time <= 0) endRound();
   }, 1000);
@@ -308,7 +368,7 @@ function processVote(team, user, multiplier = 1) {
   let goalPercent = Math.min((STATE.totalGameVotes / 1000) * 100, 100);
   UI.goalBar.style.width = goalPercent + "%";
   
-  if(STATE.isBossMode) { STATE.bossHP -= points; updateBossUI(); }
+  // BOSS MODU KONTROLÜ KALDIRILDI
 
   if(user) {
       STATE.lastHitter = user;
@@ -332,8 +392,16 @@ function updateDisplay() {
 
   if(leader !== STATE.currentLeader) {
       STATE.currentLeader = leader;
-      ['gs', 'fb', 'bjk'].forEach(team => { if(team !== leader) UI.audio[team].pause(); });
-      if(leader && !CONFIG.muted) safePlay(UI.audio[leader]);
+      ['gs', 'fb', 'bjk'].forEach(team => { 
+          if(team !== leader) {
+              UI.audio[team].pause(); 
+              console.log(`⏸️ Paused: ${team} anthem`);
+          }
+      });
+      if(leader && !CONFIG.muted) {
+          console.log(`▶️ Playing leader anthem: ${leader}`);
+          safePlay(UI.audio[leader]);
+      }
   }
 
   ['gs', 'fb', 'bjk'].forEach(t => {
@@ -362,7 +430,13 @@ function addTicker(user, team, points) {
 function endRound() {
   clearInterval(timerInterval);
   STATE.active = false;
-  if(!CONFIG.muted) { UI.audio.amb.pause(); UI.audio.gs.pause(); UI.audio.fb.pause(); UI.audio.bjk.pause(); }
+  if(!CONFIG.muted) { 
+      UI.audio.amb.pause(); 
+      UI.audio.gs.pause(); 
+      UI.audio.fb.pause(); 
+      UI.audio.bjk.pause(); 
+      console.log("⏸️ All anthems paused at round end");
+  }
 
   let max = Math.max(STATE.votes.gs, STATE.votes.fb, STATE.votes.bjk);
   let winners = Object.keys(STATE.votes).filter(k => STATE.votes[k] === max && max > 0);
@@ -373,7 +447,10 @@ function endRound() {
 
   if(winners.length === 1) {
     let w = winners[0]; STATE.wins[w]++; UI.total[w].innerText = STATE.wins[w];
-    if(!CONFIG.muted) safePlay(UI.audio.gol);
+    if(!CONFIG.muted) {
+        console.log(`🎉 Winner ${w}! Playing goal sound`);
+        safePlay(UI.audio.gol);
+    }
     title.innerText = w.toUpperCase() + " KAZANDI!";
     title.style.color = w==='gs'?'#A90432':(w==='fb'?'#002D72':'#fff');
     if(w==='gs') img.src = "https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png";
@@ -389,7 +466,12 @@ function endRound() {
   let next = 10;
   let nextInt = setInterval(() => {
     document.getElementById('next-timer').innerText = "Sonraki: " + (--next);
-    if(next < 0) { clearInterval(nextInt); STATE.round++; document.getElementById('round-num').innerText = STATE.round; resetRound(); }
+    if(next < 0) { 
+        clearInterval(nextInt); 
+        STATE.round++; 
+        document.getElementById('round-num').innerText = STATE.round; 
+        resetRound(); 
+    }
   }, 1000);
 }
 
@@ -433,9 +515,6 @@ async function pollChat() {
     setTimeout(pollChat, 7000);
   }
 }
-
-// ❌ ARTIK BURADA ÇAĞIRMIYORUZ! initGame İÇİNE TAŞINDI.
-// pollChat(); 
 
 window.onload = initGame;
 </script>
