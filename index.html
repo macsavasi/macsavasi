@@ -165,8 +165,10 @@ let STATE = {
   lastHitter: null,
   isDoublePoints: false,
   doublePointTriggerTime: -1,
-  currentLeader: null
-  // BOSS MODU DEĞİŞKENLERİ KALDIRILDI
+  currentLeader: null,
+  
+  // ⏱️ KULLANICI → SON OY ZAMANI
+  lastVoteTime: {}
 };
 
 // --- DOM ELEMENTS ---
@@ -194,7 +196,6 @@ const UI = {
   lastHitDisplay: document.getElementById('last-hit-display'),
   weather: document.getElementById('weather-layer'),
   subArea: document.getElementById('sub-notification-area')
-  // BOSS UI ELEMENTLERİ KALDIRILDI
 };
 
 // --- HELPERS ---
@@ -332,6 +333,9 @@ function resetRound() {
     UI.audio[k].pause();
   });
 
+  // 🔁 yeni tur → herkes sıfırdan
+  STATE.lastVoteTime = {};
+
   document.getElementById('overlay').classList.remove('active');
   UI.timer.classList.remove('danger');
   
@@ -353,14 +357,23 @@ function resetRound() {
         STATE.isDoublePoints = true; UI.x2Event.classList.add('active');
         setTimeout(() => { STATE.isDoublePoints = false; UI.x2Event.classList.remove('active'); }, 10000);
     }
-    // BOSS MODU TETİKLEMESİ KALDIRILDI
     if(STATE.time <= 10) UI.timer.classList.add('danger');
     if(STATE.time <= 0) endRound();
   }, 1000);
 }
 
 function processVote(team, user, multiplier = 1) {
-  if(!STATE.active) return;
+  if (!STATE.active) return;
+
+  const now = Date.now();
+  const last = STATE.lastVoteTime[user] || 0;
+
+  // ⛔ 3 saniye dolmadıysa sayma
+  if (now - last < 3000) return;
+
+  // ✅ oy kabul edildi → zamanı kaydet
+  STATE.lastVoteTime[user] = now;
+
   let points = (STATE.isDoublePoints ? 2 : 1) * multiplier;
   STATE.votes[team] += points;
   STATE.totalGameVotes += points;
@@ -368,8 +381,6 @@ function processVote(team, user, multiplier = 1) {
   let goalPercent = Math.min((STATE.totalGameVotes / 1000) * 100, 100);
   UI.goalBar.style.width = goalPercent + "%";
   
-  // BOSS MODU KONTROLÜ KALDIRILDI
-
   if(user) {
       STATE.lastHitter = user;
       if(!STATE.mvp[team].data[user]) STATE.mvp[team].data[user] = 0;
@@ -478,6 +489,7 @@ function endRound() {
 // --- NEW CHAT READER (VIA WORKER) ---
 const WORKER_URL = "https://yt-chat-proxy.dumbmuzik.workers.dev/chat";
 
+// 🔒 AYNI MESAJLARI TEKRAR İŞLEMEMEK İÇİN
 let seen = new Set();
 
 async function pollChat() {
@@ -491,11 +503,16 @@ async function pollChat() {
     }
 
     // ✅ FIX 2: BELLEK KORUMASI
-    if (seen.size > 500) {
+    if (seen.size > 1000) {
       seen.clear();
     }
 
     data.messages.forEach(msg => {
+      const key = msg.user + "|" + msg.text;
+
+      // 🔒 Aynı mesajı bir daha işleme
+      if (seen.has(key)) return;
+      seen.add(key);
 
       // ✅ FIX 3: REGEX KONTROLÜ (Başlangıç eşleşmesi + Lowercase)
       const text = msg.text.toLowerCase();
