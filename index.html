@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flag Battle Royale - Stream Ready Edition</title>
+    <title>Flag Battle Royale - Stream Giant Mode</title>
     <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        /* --- 1. ADIM: AKIŞKAN TİPOGRAFİ KÖK DEĞİŞKENLERİ --- */
+        /* --- DEV MODU (GIANT MODE) TİPOGRAFİ --- */
         :root {
-          /* Ekran yüksekliğine (vh) göre değişen, minimum ve maksimum sınırları olan fontlar */
-          --fs-xs: clamp(11px, 1.5vh, 14px); /* Çok küçük detaylar */
-          --fs-sm: clamp(14px, 2vh, 18px);   /* Standart UI metinleri */
-          --fs-md: clamp(18px, 3vh, 26px);   /* Başlıklar, önemli bilgiler */
-          --fs-lg: clamp(26px, 4.5vh, 42px); /* Büyük başlıklar (Top Hook) */
-          --fs-xl: clamp(36px, 6vh, 64px);   /* Sayaçlar, Ana Başlıklar */
+            /* Artık piksel hesabı yok, direkt ekranın %'si kadar dev fontlar */
+            --fs-xs: 1.8vh;   /* En küçük yazı */
+            --fs-sm: 2.2vh;   /* Standart metin */
+            --fs-md: 3.0vh;   /* Başlıklar */
+            --fs-lg: 4.5vh;   /* Büyük yazılar */
+            --fs-xl: 6.5vh;   /* Sayaçlar */
         }
 
         body {
@@ -22,6 +22,7 @@
             transition: background-color 1.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
+        /* Arka Plan */
         #bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, rgba(26,11,46,0.8) 0%, #000000 90%);
@@ -33,51 +34,63 @@
         .hud-panel {
             position: absolute; z-index: 15; pointer-events: none;
             display: flex; align-items: center; gap: 10px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.9); /* Mobilde okunabilirlik için koyu gölge */
         }
 
-        /* --- 2. ADIM: GÜVENLİ BÖLGE (SAFE ZONES) VE FONT UYGULAMALARI --- */
-
-        /* Üst paneller YouTube üst barından kaçmak için aşağı itildi (top: 40px/90px) */
+        /* --- ÜST PANELLER (Büyütüldü ve Aşağı İtildi) --- */
         #radio-panel {
-            top: 40px; right: 20px; /* YouTube arayüzünden kaçış */
-            background: rgba(0, 0, 0, 0.6);
-            padding: 8px 15px; border-radius: 50px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #00ff9d; font-size: var(--fs-sm); /* Akışkan font */
-            display: flex; align-items: center; gap: 8px;
-            transition: all 0.3s;
+            top: 50px; right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px; border-radius: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #00ff9d; font-size: var(--fs-sm);
+            display: flex; align-items: center; gap: 10px;
+            font-weight: bold;
         }
         
-        #live-panel { top: 40px; left: 20px; color: white; font-weight: bold; font-size: var(--fs-md); }
-        #round-panel { top: 90px; left: 20px; font-family: 'Black Ops One'; font-size: var(--fs-sm); color: #00ffff; opacity: 0.8; }
+        #live-panel { top: 50px; left: 20px; color: white; font-weight: 900; font-size: var(--fs-md); }
+        #round-panel { top: 110px; left: 20px; font-family: 'Black Ops One'; font-size: var(--fs-md); color: #00ffff; opacity: 1; }
         
-        /* Alt paneller YouTube chat barından kaçmak için yukarı itildi (bottom: 28%/10%) */
-        #stats-panel { bottom: 28%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .counter-box { font-family: 'Black Ops One'; font-size: var(--fs-xl); color: #fff; text-shadow: 0 0 20px rgba(0,255,255,0.5); line-height: 1; }
-        .counter-label { font-size: var(--fs-sm); color: #aaa; text-transform: uppercase; letter-spacing: 3px; }
+        /* --- ALT PANELLER (Chat'ten Kaçış - Çok Daha Yukarı) --- */
+        /* YouTube arayüzü alt kısmı kapattığı için bunları %35-40 yukarı çektik */
+        
+        #stats-panel { bottom: 38%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .counter-box { font-family: 'Black Ops One'; font-size: var(--fs-xl); color: #fff; text-shadow: 0 0 30px rgba(0,255,255,0.8); line-height: 1; }
+        .counter-label { font-size: var(--fs-sm); color: #fff; text-transform: uppercase; letter-spacing: 3px; font-weight: bold; }
 
-        #last-wins { bottom: 20px; left: 20px; flex-direction: column; align-items: flex-start; font-size: var(--fs-xs); color: #ccc; opacity: 0.85; }
-        .lw-title { font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; color: #ffd700; }
-        #win-stats { bottom: 20px; right: 20px; font-size: var(--fs-xs); color: #aaa; max-width: 140px; text-align: right; display: block; }
+        /* Last Wins sol kenara yapışık ama yukarıda */
+        #last-wins { bottom: 32%; left: 20px; flex-direction: column; align-items: flex-start; font-size: var(--fs-sm); color: #fff; opacity: 1; }
+        .lw-title { font-weight: 900; letter-spacing: 1px; margin-bottom: 6px; color: #ffd700; font-size: var(--fs-sm); }
+        #win-stats { bottom: 32%; right: 20px; font-size: var(--fs-sm); color: #fff; max-width: 250px; text-align: right; display: block; font-weight: bold; }
 
-        .bottom-hook { bottom: 10%; font-size: var(--fs-sm); font-weight: 900; background: linear-gradient(90deg, transparent, rgba(255, 0, 85, 0.8), transparent); padding: 8px 0; color: #fff; letter-spacing: 1px; }
-        .top-hook { top: 8%; font-family: 'Black Ops One'; font-size: var(--fs-lg); color: #00ffff; letter-spacing: 2px; text-shadow: 0 0 20px #00ffff; transition: all 0.5s; }
+        /* Başlıklar */
+        .bottom-hook { bottom: 15%; font-size: var(--fs-md); font-weight: 900; background: rgba(0,0,0,0.6); padding: 15px 0; color: #fff; width: 100%; letter-spacing: 2px; }
+        .top-hook { top: 15%; font-family: 'Black Ops One'; font-size: var(--fs-lg); color: #00ffff; letter-spacing: 3px; text-shadow: 0 0 30px #00ffff; }
 
-        /* DİĞER STİLLER (Aynı) */
-        .eq-bar { width: 3px; background: #00ff9d; animation: eq 0.8s infinite ease-in-out; }
-        .eq-1 { height: 10px; animation-delay: 0s; } .eq-2 { height: 15px; animation-delay: 0.2s; } .eq-3 { height: 8px; animation-delay: 0.4s; }
-        body.warning .eq-bar { animation-duration: 0.2s; background: #ffff00; } body.warning #radio-panel { border-color: #ffff00; color: #ffff00; transform: scale(1.05); }
-        body.sudden .eq-bar { background: #ff4444; } body.sudden #radio-panel { border-color: #ff4444; color: #ff4444; } body.sudden .top-hook { color: #ff4444; text-shadow: 0 0 30px #ff0000; animation: pulse 0.5s infinite; }
-        .live-badge { background: #ff0000; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.9rem; margin-right: 10px; animation: livePulse 1.5s infinite; }
-        #clock { font-family: 'Black Ops One'; letter-spacing: 1px; }
-        .hook-text { position: absolute; width: 100%; text-align: center; text-transform: uppercase; color: #fff; pointer-events: none; z-index: 10; text-shadow: 0 0 15px rgba(0,0,0,0.8); }
-        #winnerOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 20; backdrop-filter: blur(5px); }
-        #w-flag { width: 180px; height: 180px; border-radius: 50%; border: 8px solid #FFD700; box-shadow: 0 0 80px #FFD700; object-fit: cover; margin-bottom: 20px; animation: spin 10s linear infinite; }
-        #w-title { font-family: 'Black Ops One'; font-size: var(--fs-xl); color: #FFD700; margin: 0; }
-        #w-name { font-size: var(--fs-md); color: #fff; text-transform: uppercase; font-weight: bold; margin-top: 10px; }
-        #timer { margin-top: 30px; font-size: var(--fs-sm); color: #888; }
-        #last-win-list { list-style: none; padding: 0; margin: 0; } #last-win-list li { line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.02);} 100% {transform: scale(1);} }
+        /* Görsel Öğeler */
+        .eq-bar { width: 6px; background: #00ff9d; animation: eq 0.8s infinite ease-in-out; }
+        .eq-1 { height: 18px; } .eq-2 { height: 28px; } .eq-3 { height: 14px; }
+        
+        /* Sudden Death Renkleri */
+        body.sudden .eq-bar { background: #ff4444; } 
+        body.sudden #radio-panel { border-color: #ff4444; color: #ff4444; } 
+        body.sudden .top-hook { color: #ff4444; text-shadow: 0 0 50px #ff0000; }
+        
+        .live-badge { background: #ff0000; padding: 4px 12px; border-radius: 6px; font-size: var(--fs-sm); margin-right: 10px; }
+        #clock { font-family: 'Black Ops One'; }
+        .hook-text { position: absolute; width: 100%; text-align: center; text-transform: uppercase; color: #fff; pointer-events: none; z-index: 10; }
+        
+        #winnerOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.9); z-index: 20; backdrop-filter: blur(10px); }
+        #w-flag { width: 250px; height: 250px; border-radius: 50%; border: 10px solid #FFD700; box-shadow: 0 0 100px #FFD700; object-fit: cover; margin-bottom: 30px; }
+        #w-title { font-family: 'Black Ops One'; font-size: 8vh; color: #FFD700; margin: 0; }
+        #w-name { font-size: 5vh; color: #fff; text-transform: uppercase; font-weight: bold; margin-top: 10px; }
+        #timer { margin-top: 40px; font-size: 3vh; color: #888; }
+        
+        #last-win-list { list-style: none; padding: 0; margin: 0; } 
+        #last-win-list li { line-height: 1.5; border-bottom: 2px solid rgba(255,255,255,0.2); padding: 5px 0; }
+        #last-win-list img { width: 25px; height: auto; margin-right: 10px; vertical-align: middle; }
+
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes livePulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
         @keyframes eq { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.5); } }
@@ -153,9 +166,12 @@
     let roundCount = 1;
     let suddenDeath = false;
     let gameStartTime = 0;
+    
+    // Hot Streak Logic
     let lastWinners = []; 
     let previousWinnerName = "";
     let currentStreak = 0;
+    
     const winStats = {};
 
     const COUNTRIES = [
@@ -216,32 +232,33 @@
 
     let WIDTH, HEIGHT, CX, CY, ARENA_RADIUS;
 
-    // --- 3. ADIM: CANVAS DPI ZORLAMA ---
+    // --- GIANT MODE RESIZE ---
     function resize() {
-        // Cihazın piksel yoğunluğunu al (örn. Retina ekranlar için 2 veya 3)
         const dpr = window.devicePixelRatio || 1;
 
         WIDTH = window.innerWidth;
         HEIGHT = window.innerHeight;
 
-        // Canvas'ın iç çözünürlüğünü DPI ile çarp (Keskinlik için)
         canvas.width = WIDTH * dpr;
         canvas.height = HEIGHT * dpr;
 
-        // Canvas'ın ekranda kaplayacağı alanı CSS ile sabitle
         canvas.style.width = WIDTH + "px";
         canvas.style.height = HEIGHT + "px";
 
-        // Çizim bağlamını (context) DPI'a göre ölçekle
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         CX = WIDTH / 2;
-        CY = HEIGHT * 0.38; 
-        ARENA_RADIUS = (Math.min(WIDTH, HEIGHT) / 2) * 0.72;
+        // Arenayı biraz daha ortaya/yukarı alıyoruz ki alttaki statlara yer kalsın
+        CY = HEIGHT * 0.45; 
+        
+        // Dikey ekranda genişliği fulle
+        ARENA_RADIUS = (WIDTH / 2) * 0.90; 
     }
     resize(); window.addEventListener('resize', resize);
 
-    const BALL_RADIUS = 13; const GAP_SIZE = Math.PI / 4.5; 
+    // TOP YARIÇAPI BÜYÜTÜLDÜ (13 -> 22)
+    const BALL_RADIUS = 22; 
+    const GAP_SIZE = Math.PI / 4.5; 
     const GRAVITY = 0.25; const FRICTION_ARENA = 1.0; const FRICTION_AIR = 0.98;
     let arenaRotation = 0; const ROTATION_SPEED = 0.025; 
     let screenShake = 0;
@@ -250,7 +267,7 @@
 
     class Particle {
         constructor(x, y, color) {
-            this.x=x; this.y=y; this.color=color; this.size=Math.random()*3+1;
+            this.x=x; this.y=y; this.color=color; this.size=Math.random()*4+2; // Partiküller de büyüdü
             this.vx=(Math.random()-0.5)*6; this.vy=(Math.random()-0.5)*6; this.life=1.0;
         }
         update() { this.x+=this.vx; this.y+=this.vy; this.vy+=0.1; this.life-=0.02; }
@@ -282,7 +299,7 @@
                     
                     if (inGap) {
                         this.state = 'FALLING'; screenShake = 5; playSound('eliminate');
-                        createParticles(this.x, this.y, '#fff', 5);
+                        createParticles(this.x, this.y, '#fff', 8); // Daha fazla partikül
                     } else {
                         const overlap = dist + this.r - ARENA_RADIUS;
                         const nx = (this.x-CX)/dist; const ny = (this.y-CY)/dist;
@@ -315,8 +332,8 @@
             ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.clip();
             ctx.drawImage(this.img, -this.r, -this.r, this.r*2, this.r*2); ctx.restore();
             ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
-            ctx.strokeStyle = this.state==='ARENA' ? '#fff' : '#ff0055'; ctx.lineWidth=2; ctx.stroke();
-            if(this.state==='ARENA') { ctx.shadowBlur=10; ctx.shadowColor='#fff'; ctx.stroke(); ctx.shadowBlur=0; }
+            ctx.strokeStyle = this.state==='ARENA' ? '#fff' : '#ff0055'; ctx.lineWidth=3; ctx.stroke();
+            if(this.state==='ARENA') { ctx.shadowBlur=15; ctx.shadowColor='#fff'; ctx.stroke(); ctx.shadowBlur=0; }
         }
     }
 
@@ -344,22 +361,22 @@
         arenaRotation += ROTATION_SPEED;
         ctx.save();
         let jitterX = 0, jitterY = 0;
-        if (suddenDeath) { jitterX = (Math.random() - 0.5) * 4; jitterY = (Math.random() - 0.5) * 4; }
+        if (suddenDeath) { jitterX = (Math.random() - 0.5) * 6; jitterY = (Math.random() - 0.5) * 6; }
         let strokeCol = '#00ffff'; let shadowCol = '#00ffff';
         if (document.body.classList.contains('warning')) { strokeCol = '#ffff00'; shadowCol = '#ffff00'; }
         if (document.body.classList.contains('sudden')) { strokeCol = '#ff0000'; shadowCol = '#ff0000'; }
         
-        ctx.shadowBlur = 20; ctx.shadowColor = shadowCol; ctx.strokeStyle = strokeCol;
+        ctx.shadowBlur = 40; ctx.shadowColor = shadowCol; ctx.strokeStyle = strokeCol;
         
-        // BONUS: Ekran boyutuna göre dinamik çizgi kalınlığı
-        ctx.lineWidth = Math.max(12, HEIGHT * 0.015); 
+        // ÇİZGİ KALINLIĞI ARTTIRILDI
+        ctx.lineWidth = Math.max(16, HEIGHT * 0.02); 
         ctx.lineCap = 'round';
         
         ctx.beginPath();
         ctx.arc(CX + jitterX, CY + jitterY, ARENA_RADIUS, arenaRotation + GAP_SIZE, arenaRotation + Math.PI*2);
         ctx.stroke();
         ctx.shadowBlur = 0; 
-        ctx.strokeStyle = 'rgba(255, 0, 50, 0.4)'; ctx.lineWidth = 4;
+        ctx.strokeStyle = 'rgba(255, 0, 50, 0.4)'; ctx.lineWidth = 6;
         ctx.beginPath();
         ctx.arc(CX, CY, ARENA_RADIUS, arenaRotation, arenaRotation + GAP_SIZE);
         ctx.stroke();
@@ -385,7 +402,6 @@
             ctx.translate(dx, dy); screenShake*=0.9; if(screenShake<0.5) screenShake=0;
         }
 
-        // Canvası temizlerken DPR'ı hesaba katmaya gerek yok, setTransform hallediyor
         ctx.clearRect(0, 0, WIDTH, HEIGHT); 
         drawArena();
 
@@ -419,7 +435,7 @@
         lastWinList.innerHTML = '';
         lastWinners.forEach(w => {
             const li = document.createElement('li');
-            li.innerHTML = `<img src="${w.img}" style="width:12px; vertical-align:middle; margin-right:4px;"> ${w.name} ${w.streak}`;
+            li.innerHTML = `<img src="${w.img}" style="width:20px; vertical-align:middle; margin-right:4px;"> ${w.name} ${w.streak}`;
             lastWinList.appendChild(li);
         });
 
@@ -441,7 +457,6 @@
         document.body.style.backgroundColor = '#050505';
         roundEl.innerText = roundCount; suddenDeath = false; gameStartTime = performance.now();
         document.body.classList.remove('sudden', 'warning'); bgMusic.volume = 0.3; 
-        // resize() çağrısı burada önemli, arena boyutunu sıfırlar ve DPI'ı korur
         resize(); 
 
         balls = []; particles = [];
