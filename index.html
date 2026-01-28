@@ -3,23 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flag Battle Royale - Stream Giant Mode</title>
+    <title>Flag Battle Royale - Chaos Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        /* --- DEV MODU (GIANT MODE) TİPOGRAFİ --- */
+        /* --- TİPOGRAFİ (Bir tık küçültüldü) --- */
         :root {
-            /* Artık piksel hesabı yok, direkt ekranın %'si kadar dev fontlar */
-            --fs-xs: 1.8vh;   /* En küçük yazı */
-            --fs-sm: 2.2vh;   /* Standart metin */
-            --fs-md: 3.0vh;   /* Başlıklar */
-            --fs-lg: 4.5vh;   /* Büyük yazılar */
-            --fs-xl: 6.5vh;   /* Sayaçlar */
+            --fs-xs: 1.5vh;
+            --fs-sm: 2.0vh;
+            --fs-md: 2.8vh;
+            --fs-lg: 4.0vh;
+            --fs-xl: 6.0vh; 
         }
 
         body {
             margin: 0; overflow: hidden; background-color: #050505;
             font-family: 'Roboto', sans-serif; touch-action: none; user-select: none;
-            transition: background-color 1.5s cubic-bezier(0.25, 1, 0.5, 1);
+            transition: background-color 0.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         /* Arka Plan */
@@ -34,14 +33,14 @@
         .hud-panel {
             position: absolute; z-index: 15; pointer-events: none;
             display: flex; align-items: center; gap: 10px;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.9); /* Mobilde okunabilirlik için koyu gölge */
+            text-shadow: 2px 2px 5px rgba(0,0,0,0.9);
         }
 
-        /* --- ÜST PANELLER (Büyütüldü ve Aşağı İtildi) --- */
+        /* --- ÜST PANELLER --- */
         #radio-panel {
             top: 50px; right: 20px;
             background: rgba(0, 0, 0, 0.7);
-            padding: 10px 20px; border-radius: 50px;
+            padding: 8px 16px; border-radius: 50px;
             border: 2px solid rgba(255, 255, 255, 0.2);
             color: #00ff9d; font-size: var(--fs-sm);
             display: flex; align-items: center; gap: 10px;
@@ -49,16 +48,13 @@
         }
         
         #live-panel { top: 50px; left: 20px; color: white; font-weight: 900; font-size: var(--fs-md); }
-        #round-panel { top: 110px; left: 20px; font-family: 'Black Ops One'; font-size: var(--fs-md); color: #00ffff; opacity: 1; }
+        #round-panel { top: 100px; left: 20px; font-family: 'Black Ops One'; font-size: var(--fs-md); color: #00ffff; opacity: 1; }
         
-        /* --- ALT PANELLER (Chat'ten Kaçış - Çok Daha Yukarı) --- */
-        /* YouTube arayüzü alt kısmı kapattığı için bunları %35-40 yukarı çektik */
-        
+        /* --- ALT PANELLER --- */
         #stats-panel { bottom: 38%; left: 50%; transform: translateX(-50%); text-align: center; }
         .counter-box { font-family: 'Black Ops One'; font-size: var(--fs-xl); color: #fff; text-shadow: 0 0 30px rgba(0,255,255,0.8); line-height: 1; }
         .counter-label { font-size: var(--fs-sm); color: #fff; text-transform: uppercase; letter-spacing: 3px; font-weight: bold; }
 
-        /* Last Wins sol kenara yapışık ama yukarıda */
         #last-wins { bottom: 32%; left: 20px; flex-direction: column; align-items: flex-start; font-size: var(--fs-sm); color: #fff; opacity: 1; }
         .lw-title { font-weight: 900; letter-spacing: 1px; margin-bottom: 6px; color: #ffd700; font-size: var(--fs-sm); }
         #win-stats { bottom: 32%; right: 20px; font-size: var(--fs-sm); color: #fff; max-width: 250px; text-align: right; display: block; font-weight: bold; }
@@ -235,39 +231,35 @@
     // --- GIANT MODE RESIZE ---
     function resize() {
         const dpr = window.devicePixelRatio || 1;
-
         WIDTH = window.innerWidth;
         HEIGHT = window.innerHeight;
-
         canvas.width = WIDTH * dpr;
         canvas.height = HEIGHT * dpr;
-
         canvas.style.width = WIDTH + "px";
         canvas.style.height = HEIGHT + "px";
-
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         CX = WIDTH / 2;
-        // Arenayı biraz daha ortaya/yukarı alıyoruz ki alttaki statlara yer kalsın
         CY = HEIGHT * 0.45; 
-        
-        // Dikey ekranda genişliği fulle
         ARENA_RADIUS = (WIDTH / 2) * 0.90; 
     }
     resize(); window.addEventListener('resize', resize);
 
-    // TOP YARIÇAPI BÜYÜTÜLDÜ (13 -> 22)
-    const BALL_RADIUS = 22; 
+    // --- FİZİK AYARLARI (GÜNCEL) ---
+    const BALL_RADIUS = 32; // TOPLAR ÇOK BÜYÜTÜLDÜ (22 -> 32)
     const GAP_SIZE = Math.PI / 4.5; 
-    const GRAVITY = 0.25; const FRICTION_ARENA = 1.0; const FRICTION_AIR = 0.98;
-    let arenaRotation = 0; const ROTATION_SPEED = 0.025; 
+    const GRAVITY = 0.25; 
+    const FRICTION_ARENA = 1.0; 
+    const FRICTION_AIR = 0.98;
+    let arenaRotation = 0; 
+    const ROTATION_SPEED = 0.025; 
     let screenShake = 0;
 
     let balls = []; let particles = []; let animationId; let isGameOver = false; let gameRunning = true; 
 
     class Particle {
         constructor(x, y, color) {
-            this.x=x; this.y=y; this.color=color; this.size=Math.random()*4+2; // Partiküller de büyüdü
+            this.x=x; this.y=y; this.color=color; this.size=Math.random()*4+2; 
             this.vx=(Math.random()-0.5)*6; this.vy=(Math.random()-0.5)*6; this.life=1.0;
         }
         update() { this.x+=this.vx; this.y+=this.vy; this.vy+=0.1; this.life-=0.02; }
@@ -289,7 +281,9 @@
             if (this.state === 'ARENA') {
                 this.x+=this.vx; this.y+=this.vy; this.vx*=FRICTION_ARENA; this.vy*=FRICTION_ARENA;
                 const speed = Math.hypot(this.vx, this.vy);
-                if(speed < 2) { this.vx*=1.1; this.vy*=1.1; } if(speed > 15) { this.vx*=0.95; this.vy*=0.95; }
+                if(speed < 2) { this.vx*=1.1; this.vy*=1.1; } 
+                // HIZ LİMİTİ ARTIRILDI (15 -> 25)
+                if(speed > 25) { this.vx*=0.95; this.vy*=0.95; }
                 
                 const dist = Math.hypot(this.x-CX, this.y-CY);
                 if (dist + this.r >= ARENA_RADIUS) {
@@ -299,7 +293,7 @@
                     
                     if (inGap) {
                         this.state = 'FALLING'; screenShake = 5; playSound('eliminate');
-                        createParticles(this.x, this.y, '#fff', 8); // Daha fazla partikül
+                        createParticles(this.x, this.y, '#fff', 12); 
                     } else {
                         const overlap = dist + this.r - ARENA_RADIUS;
                         const nx = (this.x-CX)/dist; const ny = (this.y-CY)/dist;
@@ -367,8 +361,6 @@
         if (document.body.classList.contains('sudden')) { strokeCol = '#ff0000'; shadowCol = '#ff0000'; }
         
         ctx.shadowBlur = 40; ctx.shadowColor = shadowCol; ctx.strokeStyle = strokeCol;
-        
-        // ÇİZGİ KALINLIĞI ARTTIRILDI
         ctx.lineWidth = Math.max(16, HEIGHT * 0.02); 
         ctx.lineCap = 'round';
         
@@ -390,9 +382,34 @@
         if (!suddenDeath && elapsed > 18 && elapsed < 20) { document.body.classList.add('warning'); } 
         else { document.body.classList.remove('warning'); }
 
+        // --- IMPLODE (VAKUM) ETKİSİ (18.5 - 19.8 sn arası) ---
+        if (!suddenDeath && elapsed > 18.5 && elapsed < 19.8) {
+             balls.forEach(b => {
+                 if(b.state === 'ARENA') {
+                     // Merkeze doğru kuvvetli çekim
+                     let dx = CX - b.x;
+                     let dy = CY - b.y;
+                     b.vx += dx * 0.05; 
+                     b.vy += dy * 0.05;
+                 }
+             });
+        }
+
+        // --- EXPLOSION & SUDDEN DEATH (20. sn) ---
         if (!suddenDeath && elapsed >= 20) {
-            suddenDeath = true; ARENA_RADIUS *= 0.85; 
-            balls.forEach(b => { b.vx *= 1.15; b.vy *= 1.15; });
+            suddenDeath = true; 
+            ARENA_RADIUS *= 0.85; 
+            
+            // PATLAMA EFEKTİ: Rastgele yönlere çok yüksek hız
+            balls.forEach(b => { 
+                if (b.state === 'ARENA') {
+                    let angle = Math.random() * Math.PI * 2;
+                    let force = 30; // Çok yüksek hız
+                    b.vx = Math.cos(angle) * force;
+                    b.vy = Math.sin(angle) * force;
+                }
+            });
+            
             bgMusic.volume = 0.45; document.body.classList.add('sudden');
         }
 
