@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flag Battle Royale - Chaos Edition</title>
+    <title>Flag Battle Royale - Fast & Furious Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
     <style>
-        /* --- TİPOGRAFİ (Bir tık küçültüldü) --- */
+        /* --- TİPOGRAFİ (BİRAZ DAHA KÜÇÜLTÜLDÜ) --- */
         :root {
-            --fs-xs: 1.5vh;
-            --fs-sm: 2.0vh;
-            --fs-md: 2.8vh;
-            --fs-lg: 4.0vh;
-            --fs-xl: 6.0vh; 
+            --fs-xs: 1.3vh;
+            --fs-sm: 1.8vh; /* Standart metin küçüldü */
+            --fs-md: 2.5vh; /* Başlıklar küçüldü */
+            --fs-lg: 3.5vh; /* Ana başlık */
+            --fs-xl: 5.5vh; /* Sayaç */
         }
 
         body {
@@ -64,8 +64,8 @@
         .top-hook { top: 15%; font-family: 'Black Ops One'; font-size: var(--fs-lg); color: #00ffff; letter-spacing: 3px; text-shadow: 0 0 30px #00ffff; }
 
         /* Görsel Öğeler */
-        .eq-bar { width: 6px; background: #00ff9d; animation: eq 0.8s infinite ease-in-out; }
-        .eq-1 { height: 18px; } .eq-2 { height: 28px; } .eq-3 { height: 14px; }
+        .eq-bar { width: 5px; background: #00ff9d; animation: eq 0.8s infinite ease-in-out; }
+        .eq-1 { height: 15px; } .eq-2 { height: 25px; } .eq-3 { height: 12px; }
         
         /* Sudden Death Renkleri */
         body.sudden .eq-bar { background: #ff4444; } 
@@ -84,7 +84,7 @@
         
         #last-win-list { list-style: none; padding: 0; margin: 0; } 
         #last-win-list li { line-height: 1.5; border-bottom: 2px solid rgba(255,255,255,0.2); padding: 5px 0; }
-        #last-win-list img { width: 25px; height: auto; margin-right: 10px; vertical-align: middle; }
+        #last-win-list img { width: 20px; height: auto; margin-right: 8px; vertical-align: middle; }
 
         @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.05);} 100% {transform: scale(1);} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -228,7 +228,6 @@
 
     let WIDTH, HEIGHT, CX, CY, ARENA_RADIUS;
 
-    // --- GIANT MODE RESIZE ---
     function resize() {
         const dpr = window.devicePixelRatio || 1;
         WIDTH = window.innerWidth;
@@ -245,8 +244,8 @@
     }
     resize(); window.addEventListener('resize', resize);
 
-    // --- FİZİK AYARLARI (GÜNCEL) ---
-    const BALL_RADIUS = 32; // TOPLAR ÇOK BÜYÜTÜLDÜ (22 -> 32)
+    // --- FİZİK AYARLARI ---
+    const BALL_RADIUS = 32; 
     const GAP_SIZE = Math.PI / 4.5; 
     const GRAVITY = 0.25; 
     const FRICTION_ARENA = 1.0; 
@@ -280,10 +279,18 @@
 
             if (this.state === 'ARENA') {
                 this.x+=this.vx; this.y+=this.vy; this.vx*=FRICTION_ARENA; this.vy*=FRICTION_ARENA;
+                
+                // MINIMUM HIZ KONTROLÜ (Durmayı önler)
                 const speed = Math.hypot(this.vx, this.vy);
-                if(speed < 2) { this.vx*=1.1; this.vy*=1.1; } 
-                // HIZ LİMİTİ ARTIRILDI (15 -> 25)
-                if(speed > 25) { this.vx*=0.95; this.vy*=0.95; }
+                if (speed < 4) { // Eğer 4 birimden yavaşsa hızlandır
+                    this.vx *= 1.05;
+                    this.vy *= 1.05;
+                }
+                // Maksimum Hız Limiti (Çok uçmasın)
+                if (speed > 40) {
+                    this.vx *= 0.9;
+                    this.vy *= 0.9;
+                }
                 
                 const dist = Math.hypot(this.x-CX, this.y-CY);
                 if (dist + this.r >= ARENA_RADIUS) {
@@ -379,38 +386,58 @@
         if (!gameRunning) return;
         const elapsed = (performance.now() - gameStartTime) / 1000;
 
-        if (!suddenDeath && elapsed > 18 && elapsed < 20) { document.body.classList.add('warning'); } 
+        // UYARI: 21. saniyeden 23. saniyeye kadar sarı
+        if (!suddenDeath && elapsed > 21 && elapsed < 23) { document.body.classList.add('warning'); } 
         else { document.body.classList.remove('warning'); }
 
-        // --- IMPLODE (VAKUM) ETKİSİ (18.5 - 19.8 sn arası) ---
-        if (!suddenDeath && elapsed > 18.5 && elapsed < 19.8) {
+        // --- HIZLANDIRMA (10. saniyeden sonra hafifçe artır) ---
+        if (elapsed > 10 && !suddenDeath) {
+            balls.forEach(b => {
+                if (b.state === 'ARENA') {
+                    b.vx *= 1.0005; 
+                    b.vy *= 1.0005;
+                }
+            });
+        }
+
+        // --- IMPLODE (VAKUM) ETKİSİ (21.5 - 22.8 sn arası) ---
+        if (!suddenDeath && elapsed > 21.5 && elapsed < 22.8) {
              balls.forEach(b => {
                  if(b.state === 'ARENA') {
-                     // Merkeze doğru kuvvetli çekim
                      let dx = CX - b.x;
                      let dy = CY - b.y;
-                     b.vx += dx * 0.05; 
-                     b.vy += dy * 0.05;
+                     b.vx += dx * 0.06; // Merkeze çek
+                     b.vy += dy * 0.06;
                  }
              });
         }
 
-        // --- EXPLOSION & SUDDEN DEATH (20. sn) ---
-        if (!suddenDeath && elapsed >= 20) {
+        // --- EXPLOSION & SUDDEN DEATH (23. sn) ---
+        if (!suddenDeath && elapsed >= 23) {
             suddenDeath = true; 
             ARENA_RADIUS *= 0.85; 
             
-            // PATLAMA EFEKTİ: Rastgele yönlere çok yüksek hız
+            // PATLAMA EFEKTİ: Merkezden dışarıya doğru fırlat
             balls.forEach(b => { 
                 if (b.state === 'ARENA') {
-                    let angle = Math.random() * Math.PI * 2;
-                    let force = 30; // Çok yüksek hız
+                    // Topun merkeze göre açısını bul ve tam tersi yöne fırlat
+                    let angle = Math.atan2(b.y - CY, b.x - CX); 
+                    let force = 40; // Çok yüksek hız (Explosion)
                     b.vx = Math.cos(angle) * force;
                     b.vy = Math.sin(angle) * force;
                 }
             });
-            
             bgMusic.volume = 0.45; document.body.classList.add('sudden');
+        }
+        
+        // SUDDEN DEATH SÜRESİNCE SÜREKLİ HIZLANDIRMA
+        if (suddenDeath) {
+             balls.forEach(b => { 
+                 if (b.state === 'ARENA') {
+                     b.vx *= 1.002; 
+                     b.vy *= 1.002;
+                 }
+             });
         }
 
         ctx.save();
