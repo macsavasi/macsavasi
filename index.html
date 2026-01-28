@@ -3,16 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flag Battle Royale - Ultimate Polish</title>
+    <title>Flag Battle Royale - Stream Ready Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Roboto:wght@400;900&display=swap" rel="stylesheet">
     <style>
+        /* --- 1. ADIM: AKIŞKAN TİPOGRAFİ KÖK DEĞİŞKENLERİ --- */
+        :root {
+          /* Ekran yüksekliğine (vh) göre değişen, minimum ve maksimum sınırları olan fontlar */
+          --fs-xs: clamp(11px, 1.5vh, 14px); /* Çok küçük detaylar */
+          --fs-sm: clamp(14px, 2vh, 18px);   /* Standart UI metinleri */
+          --fs-md: clamp(18px, 3vh, 26px);   /* Başlıklar, önemli bilgiler */
+          --fs-lg: clamp(26px, 4.5vh, 42px); /* Büyük başlıklar (Top Hook) */
+          --fs-xl: clamp(36px, 6vh, 64px);   /* Sayaçlar, Ana Başlıklar */
+        }
+
         body {
             margin: 0; overflow: hidden; background-color: #050505;
             font-family: 'Roboto', sans-serif; touch-action: none; user-select: none;
             transition: background-color 1.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        /* Arka Plan */
         #bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, rgba(26,11,46,0.8) 0%, #000000 90%);
@@ -21,70 +30,53 @@
 
         canvas { display: block; width: 100vw; height: 100vh; }
 
-        /* HUD ORTAK */
         .hud-panel {
             position: absolute; z-index: 15; pointer-events: none;
             display: flex; align-items: center; gap: 10px;
         }
 
-        /* RADYO PANELİ & EQ */
+        /* --- 2. ADIM: GÜVENLİ BÖLGE (SAFE ZONES) VE FONT UYGULAMALARI --- */
+
+        /* Üst paneller YouTube üst barından kaçmak için aşağı itildi (top: 40px/90px) */
         #radio-panel {
-            top: 20px; right: 20px;
+            top: 40px; right: 20px; /* YouTube arayüzünden kaçış */
             background: rgba(0, 0, 0, 0.6);
             padding: 8px 15px; border-radius: 50px;
             border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #00ff9d; font-size: 0.9rem;
+            color: #00ff9d; font-size: var(--fs-sm); /* Akışkan font */
             display: flex; align-items: center; gap: 8px;
             transition: all 0.3s;
         }
+        
+        #live-panel { top: 40px; left: 20px; color: white; font-weight: bold; font-size: var(--fs-md); }
+        #round-panel { top: 90px; left: 20px; font-family: 'Black Ops One'; font-size: var(--fs-sm); color: #00ffff; opacity: 0.8; }
+        
+        /* Alt paneller YouTube chat barından kaçmak için yukarı itildi (bottom: 28%/10%) */
+        #stats-panel { bottom: 28%; left: 50%; transform: translateX(-50%); text-align: center; }
+        .counter-box { font-family: 'Black Ops One'; font-size: var(--fs-xl); color: #fff; text-shadow: 0 0 20px rgba(0,255,255,0.5); line-height: 1; }
+        .counter-label { font-size: var(--fs-sm); color: #aaa; text-transform: uppercase; letter-spacing: 3px; }
+
+        #last-wins { bottom: 20px; left: 20px; flex-direction: column; align-items: flex-start; font-size: var(--fs-xs); color: #ccc; opacity: 0.85; }
+        .lw-title { font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; color: #ffd700; }
+        #win-stats { bottom: 20px; right: 20px; font-size: var(--fs-xs); color: #aaa; max-width: 140px; text-align: right; display: block; }
+
+        .bottom-hook { bottom: 10%; font-size: var(--fs-sm); font-weight: 900; background: linear-gradient(90deg, transparent, rgba(255, 0, 85, 0.8), transparent); padding: 8px 0; color: #fff; letter-spacing: 1px; }
+        .top-hook { top: 8%; font-family: 'Black Ops One'; font-size: var(--fs-lg); color: #00ffff; letter-spacing: 2px; text-shadow: 0 0 20px #00ffff; transition: all 0.5s; }
+
+        /* DİĞER STİLLER (Aynı) */
         .eq-bar { width: 3px; background: #00ff9d; animation: eq 0.8s infinite ease-in-out; }
-        .eq-1 { height: 10px; animation-delay: 0s; }
-        .eq-2 { height: 15px; animation-delay: 0.2s; }
-        .eq-3 { height: 8px; animation-delay: 0.4s; }
-
-        /* TIME PRESSURE MODU (18-20. sn) */
-        body.warning .eq-bar { animation-duration: 0.2s; background: #ffff00; }
-        body.warning #radio-panel { border-color: #ffff00; color: #ffff00; transform: scale(1.05); }
-
-        /* SUDDEN DEATH MODU */
-        body.sudden .eq-bar { background: #ff4444; }
-        body.sudden #radio-panel { border-color: #ff4444; color: #ff4444; }
-        body.sudden .top-hook { color: #ff4444; text-shadow: 0 0 30px #ff0000; animation: pulse 0.5s infinite; }
-
-        /* DİĞER PANELLER */
-        #live-panel { top: 20px; left: 20px; color: white; font-weight: bold; font-size: 1.2rem; }
+        .eq-1 { height: 10px; animation-delay: 0s; } .eq-2 { height: 15px; animation-delay: 0.2s; } .eq-3 { height: 8px; animation-delay: 0.4s; }
+        body.warning .eq-bar { animation-duration: 0.2s; background: #ffff00; } body.warning #radio-panel { border-color: #ffff00; color: #ffff00; transform: scale(1.05); }
+        body.sudden .eq-bar { background: #ff4444; } body.sudden #radio-panel { border-color: #ff4444; color: #ff4444; } body.sudden .top-hook { color: #ff4444; text-shadow: 0 0 30px #ff0000; animation: pulse 0.5s infinite; }
         .live-badge { background: #ff0000; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.9rem; margin-right: 10px; animation: livePulse 1.5s infinite; }
         #clock { font-family: 'Black Ops One'; letter-spacing: 1px; }
-
-        #round-panel { top: 60px; left: 20px; font-family: 'Black Ops One'; font-size: 1rem; color: #00ffff; opacity: 0.8; }
-        
-        #stats-panel { bottom: 20%; left: 50%; transform: translateX(-50%); text-align: center; }
-        .counter-box { font-family: 'Black Ops One'; font-size: 4rem; color: #fff; text-shadow: 0 0 20px rgba(0,255,255,0.5); line-height: 1; }
-        .counter-label { font-size: 1rem; color: #aaa; text-transform: uppercase; letter-spacing: 3px; }
-
-        #last-wins { bottom: 20px; left: 20px; flex-direction: column; align-items: flex-start; font-size: 0.75rem; color: #ccc; opacity: 0.85; }
-        .lw-title { font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; color: #ffd700; }
-        #last-win-list { list-style: none; padding: 0; margin: 0; }
-        #last-win-list li { line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.1); }
-
-        #win-stats { bottom: 20px; right: 20px; font-size: 0.7rem; color: #aaa; max-width: 140px; text-align: right; display: block; }
-
         .hook-text { position: absolute; width: 100%; text-align: center; text-transform: uppercase; color: #fff; pointer-events: none; z-index: 10; text-shadow: 0 0 15px rgba(0,0,0,0.8); }
-        .top-hook { top: 8%; font-family: 'Black Ops One'; font-size: 2.8rem; color: #00ffff; letter-spacing: 2px; text-shadow: 0 0 20px #00ffff; transition: all 0.5s; }
-        .bottom-hook { bottom: 5%; font-size: 1.2rem; font-weight: 900; background: linear-gradient(90deg, transparent, rgba(255, 0, 85, 0.8), transparent); padding: 8px 0; color: #fff; letter-spacing: 1px; }
-
-        /* WINNER OVERLAY */
-        #winnerOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-            background: rgba(0,0,0,0.8); z-index: 20; /* Arkası biraz transparan kalsın ki renk görünsün */
-            backdrop-filter: blur(5px);
-        }
+        #winnerOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 20; backdrop-filter: blur(5px); }
         #w-flag { width: 180px; height: 180px; border-radius: 50%; border: 8px solid #FFD700; box-shadow: 0 0 80px #FFD700; object-fit: cover; margin-bottom: 20px; animation: spin 10s linear infinite; }
-        #w-title { font-family: 'Black Ops One'; font-size: 3.5rem; color: #FFD700; margin: 0; }
-        #w-name { font-size: 2rem; color: #fff; text-transform: uppercase; font-weight: bold; margin-top: 10px; }
-        #timer { margin-top: 30px; font-size: 1.5rem; color: #888; }
-
+        #w-title { font-family: 'Black Ops One'; font-size: var(--fs-xl); color: #FFD700; margin: 0; }
+        #w-name { font-size: var(--fs-md); color: #fff; text-transform: uppercase; font-weight: bold; margin-top: 10px; }
+        #timer { margin-top: 30px; font-size: var(--fs-sm); color: #888; }
+        #last-win-list { list-style: none; padding: 0; margin: 0; } #last-win-list li { line-height: 1.4; border-bottom: 1px solid rgba(255,255,255,0.1); }
         @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.02);} 100% {transform: scale(1);} }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes livePulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
@@ -161,15 +153,11 @@
     let roundCount = 1;
     let suddenDeath = false;
     let gameStartTime = 0;
-    
-    // Hot Streak Logic
     let lastWinners = []; 
     let previousWinnerName = "";
     let currentStreak = 0;
-    
     const winStats = {};
 
-    // --- RENKLİ ÜLKE LİSTESİ (Winner Flash İçin) ---
     const COUNTRIES = [
         {c:'tr',n:'Turkey', h:'#E30A17'}, {c:'us',n:'USA', h:'#3C3B6E'}, {c:'de',n:'Germany', h:'#FFCE00'}, 
         {c:'br',n:'Brazil', h:'#009c3b'}, {c:'fr',n:'France', h:'#0055A4'}, {c:'gb',n:'UK', h:'#C8102E'}, 
@@ -227,10 +215,29 @@
     }
 
     let WIDTH, HEIGHT, CX, CY, ARENA_RADIUS;
+
+    // --- 3. ADIM: CANVAS DPI ZORLAMA ---
     function resize() {
-        WIDTH = window.innerWidth; HEIGHT = window.innerHeight;
-        canvas.width = WIDTH; canvas.height = HEIGHT;
-        CX = WIDTH / 2; CY = HEIGHT * 0.38; ARENA_RADIUS = (Math.min(WIDTH, HEIGHT) / 2) * 0.72;
+        // Cihazın piksel yoğunluğunu al (örn. Retina ekranlar için 2 veya 3)
+        const dpr = window.devicePixelRatio || 1;
+
+        WIDTH = window.innerWidth;
+        HEIGHT = window.innerHeight;
+
+        // Canvas'ın iç çözünürlüğünü DPI ile çarp (Keskinlik için)
+        canvas.width = WIDTH * dpr;
+        canvas.height = HEIGHT * dpr;
+
+        // Canvas'ın ekranda kaplayacağı alanı CSS ile sabitle
+        canvas.style.width = WIDTH + "px";
+        canvas.style.height = HEIGHT + "px";
+
+        // Çizim bağlamını (context) DPI'a göre ölçekle
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        CX = WIDTH / 2;
+        CY = HEIGHT * 0.38; 
+        ARENA_RADIUS = (Math.min(WIDTH, HEIGHT) / 2) * 0.72;
     }
     resize(); window.addEventListener('resize', resize);
 
@@ -289,11 +296,7 @@
             else if (this.state === 'FALLING') {
                 this.vy += GRAVITY; this.vx *= FRICTION_AIR;
                 this.x += this.vx; this.y += this.vy;
-                
-                // --- BAYRAK DÜŞME YÖNÜ (TILT) ---
-                // Düşerken hız vektörüne göre dön
                 this.rotation = Math.atan2(this.vy, this.vx * 0.5) + Math.PI/2;
-
                 if (this.x-this.r<0 || this.x+this.r>WIDTH) { this.vx*=-0.7; this.x=Math.max(this.r, Math.min(WIDTH-this.r,this.x)); }
                 if (this.y+this.r >= HEIGHT-10) {
                     this.y=HEIGHT-10-this.r; this.vy*=-0.5; this.vx*=0.9;
@@ -302,7 +305,7 @@
             }
             else if (this.state === 'GROUNDED') {
                 this.vx*=0.9; this.vy+=GRAVITY; this.x+=this.vx; this.y+=this.vy;
-                this.rotation = 0; // Yerde düz dursun
+                this.rotation = 0;
                 if(this.y+this.r>=HEIGHT-10) { this.y=HEIGHT-10-this.r; this.vy=0; }
                 if(this.x-this.r<0) this.x=this.r; if(this.x+this.r>WIDTH) this.x=WIDTH-this.r;
             }
@@ -339,37 +342,27 @@
 
     function drawArena() {
         arenaRotation += ROTATION_SPEED;
-        
         ctx.save();
-        
-        // --- ARENA JITTER EFEKTİ (SUDDEN DEATH) ---
-        // Kırık çizgi hissi vermek için offset
         let jitterX = 0, jitterY = 0;
-        if (suddenDeath) {
-            jitterX = (Math.random() - 0.5) * 4;
-            jitterY = (Math.random() - 0.5) * 4;
-        }
-
-        // TIME PRESSURE RENK DEĞİŞİMİ (Sarı Uyarı)
-        let strokeCol = '#00ffff';
-        let shadowCol = '#00ffff';
+        if (suddenDeath) { jitterX = (Math.random() - 0.5) * 4; jitterY = (Math.random() - 0.5) * 4; }
+        let strokeCol = '#00ffff'; let shadowCol = '#00ffff';
         if (document.body.classList.contains('warning')) { strokeCol = '#ffff00'; shadowCol = '#ffff00'; }
         if (document.body.classList.contains('sudden')) { strokeCol = '#ff0000'; shadowCol = '#ff0000'; }
-
+        
         ctx.shadowBlur = 20; ctx.shadowColor = shadowCol; ctx.strokeStyle = strokeCol;
-        ctx.lineWidth = 12; ctx.lineCap = 'round';
+        
+        // BONUS: Ekran boyutuna göre dinamik çizgi kalınlığı
+        ctx.lineWidth = Math.max(12, HEIGHT * 0.015); 
+        ctx.lineCap = 'round';
         
         ctx.beginPath();
-        // Jitter'ı sadece çizime uygula, fiziğe değil
         ctx.arc(CX + jitterX, CY + jitterY, ARENA_RADIUS, arenaRotation + GAP_SIZE, arenaRotation + Math.PI*2);
         ctx.stroke();
-        
         ctx.shadowBlur = 0; 
         ctx.strokeStyle = 'rgba(255, 0, 50, 0.4)'; ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(CX, CY, ARENA_RADIUS, arenaRotation, arenaRotation + GAP_SIZE);
         ctx.stroke();
-        
         ctx.restore();
     }
 
@@ -377,21 +370,13 @@
         if (!gameRunning) return;
         const elapsed = (performance.now() - gameStartTime) / 1000;
 
-        // --- TIME PRESSURE (18-20 sn arası) ---
-        if (!suddenDeath && elapsed > 18 && elapsed < 20) {
-             document.body.classList.add('warning');
-        } else {
-             document.body.classList.remove('warning');
-        }
+        if (!suddenDeath && elapsed > 18 && elapsed < 20) { document.body.classList.add('warning'); } 
+        else { document.body.classList.remove('warning'); }
 
-        // --- SUDDEN DEATH AKTİVASYON ---
         if (!suddenDeath && elapsed >= 20) {
-            suddenDeath = true;
-            ARENA_RADIUS *= 0.85; 
-            // TOPLARI HIZLANDIR (İstek Üzerine)
+            suddenDeath = true; ARENA_RADIUS *= 0.85; 
             balls.forEach(b => { b.vx *= 1.15; b.vy *= 1.15; });
-            bgMusic.volume = 0.45;
-            document.body.classList.add('sudden');
+            bgMusic.volume = 0.45; document.body.classList.add('sudden');
         }
 
         ctx.save();
@@ -400,6 +385,7 @@
             ctx.translate(dx, dy); screenShake*=0.9; if(screenShake<0.5) screenShake=0;
         }
 
+        // Canvası temizlerken DPR'ı hesaba katmaya gerek yok, setTransform hallediyor
         ctx.clearRect(0, 0, WIDTH, HEIGHT); 
         drawArena();
 
@@ -415,37 +401,21 @@
         resolveCollisions();
         ctx.restore(); 
 
-        if (activeCount <= 1 && survivor && !isGameOver) {
-            endGame(survivor);
-        } else if (activeCount === 0 && !isGameOver) {
-            resetGame();
-        } else {
-            animationId = requestAnimationFrame(animate);
-        }
+        if (activeCount <= 1 && survivor && !isGameOver) { endGame(survivor); } 
+        else if (activeCount === 0 && !isGameOver) { resetGame(); } 
+        else { animationId = requestAnimationFrame(animate); }
     }
 
     function endGame(winner) {
-        isGameOver = true;
-        cancelAnimationFrame(animationId);
-        roundCount++;
-
-        // --- WINNER BACKGROUND FLASH ---
+        isGameOver = true; cancelAnimationFrame(animationId); roundCount++;
         document.body.style.backgroundColor = winner.colorHex || '#333';
-
-        // HOT STREAK KONTROLÜ
         let streakIcon = "";
-        if (winner.name === previousWinnerName) {
-            currentStreak++;
-            if (currentStreak > 1) streakIcon = " 🔥";
-        } else {
-            currentStreak = 1;
-        }
+        if (winner.name === previousWinnerName) { currentStreak++; if (currentStreak > 1) streakIcon = " 🔥"; } 
+        else { currentStreak = 1; }
         previousWinnerName = winner.name;
 
-        // LİSTE GÜNCELLEME
         lastWinners.unshift({name: winner.name, img: winner.img.src, streak: streakIcon});
         if (lastWinners.length > 3) lastWinners.pop();
-        
         lastWinList.innerHTML = '';
         lastWinners.forEach(w => {
             const li = document.createElement('li');
@@ -456,38 +426,28 @@
         winStats[winner.name] = (winStats[winner.name] || 0) + 1;
         winStatsEl.innerHTML = Object.entries(winStats).sort((a,b) => b[1]-a[1]).slice(0,5).map(([n,c]) => `${n}: <b style="color:#fff">${c}</b>`).join('<br>');
 
-        wFlag.src = winner.img.src;
-        wName.innerText = winner.name;
-        winnerOverlay.style.display = 'flex';
-        createParticles(WIDTH/2, HEIGHT/2, '#FFD700', 50);
+        wFlag.src = winner.img.src; wName.innerText = winner.name;
+        winnerOverlay.style.display = 'flex'; createParticles(WIDTH/2, HEIGHT/2, '#FFD700', 50);
         
-        let countdown = 5;
-        timerText.innerText = `NEXT ROUND IN ${countdown}...`;
+        let countdown = 5; timerText.innerText = `NEXT ROUND IN ${countdown}...`;
         const interval = setInterval(() => {
-            countdown--;
-            timerText.innerText = `NEXT ROUND IN ${countdown}...`;
+            countdown--; timerText.innerText = `NEXT ROUND IN ${countdown}...`;
             if (countdown <= 0) { clearInterval(interval); resetGame(); }
         }, 1000);
     }
 
     function resetGame() {
-        isGameOver = false;
-        winnerOverlay.style.display = 'none';
-        
-        // RESET HER ŞEY
-        document.body.style.backgroundColor = '#050505'; // BG Reset
-        roundEl.innerText = roundCount;
-        suddenDeath = false;
-        gameStartTime = performance.now();
-        document.body.classList.remove('sudden', 'warning');
-        bgMusic.volume = 0.3; 
+        isGameOver = false; winnerOverlay.style.display = 'none';
+        document.body.style.backgroundColor = '#050505';
+        roundEl.innerText = roundCount; suddenDeath = false; gameStartTime = performance.now();
+        document.body.classList.remove('sudden', 'warning'); bgMusic.volume = 0.3; 
+        // resize() çağrısı burada önemli, arena boyutunu sıfırlar ve DPI'ı korur
         resize(); 
 
         balls = []; particles = [];
         COUNTRIES.forEach(c => balls.push(new Ball(c)));
         balls.sort(() => Math.random() - 0.5);
         totalCounter.innerText = COUNTRIES.length;
-        
         animate();
     }
 
