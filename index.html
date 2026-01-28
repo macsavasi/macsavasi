@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ULTRA BATTLE ARENA vFinal - PRO MODE</title>
+<title>ULTRA BATTLE ARENA vFinal - WORKER MODE</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
 
 <style>
-/* --- CSS GÜNCELLENDİ (BOSS MODU KALDIRILDI) --- */
+/* --- STİL AYARLARI (AYNI) --- */
 :root { --gs-primary: #A90432; --fb-primary: #002D72; --bjk-primary: #111; --bg-dark: #050505; }
 body { margin: 0; background-color: var(--bg-dark); background-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,0), rgba(0,0,0,1)); color: #fff; font-family: 'Montserrat', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; user-select: none; transition: background-color 1s ease; }
 body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color: #00051a; } body.leader-bjk { background-color: #111; }
@@ -93,13 +93,11 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 <div class="goal-bar-wrap"><div class="goal-bar-fill" id="goal-bar-fill"></div></div>
 <div class="goal-text">HEDEF: 1000 OY</div>
 
-<!-- BOSS CONTAINER TAMAMEN KALDIRILDI -->
-
 <div class="event-x2" id="event-x2"><h1>x2 PUAN!</h1><p>10 SANİYE BOYUNCA</p></div>
 
 <div class="central-dashboard">
     <div class="promo-bar">
-        <div class="promo-content"><i class="fa-solid fa-bullhorn"></i> HOŞ GELDİNİZ! TAKIMLARINIZA OY VEREREK DESTEK OLUN! -- ABONE OLARAK İSMİNİZİ EKRANA YAZDIRIN! -- KAZANAN TAKIM MARŞINI ÇALDIRIR! -- GS YAZ, FB YAZ, BJK YAZ DESTEKLE!</div>
+        <div class="promo-content"><i class="fa-solid fa-bullhorn"></i> HOŞ GELDİNİZ! TAKIMLARINIZA OY VEREREK DESTEK OLUN! -- GS YAZ, FB YAZ, BJK YAZ DESTEKLE!</div>
     </div>
     <div class="round-box"><div class="round-label">ROUND</div><div class="round-val" id="round-num">1</div></div>
     <div class="top-scoreboard">
@@ -130,7 +128,6 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 
 <canvas id="confetti" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1500;"></canvas>
 
-<!-- ✅ 1. KATMAN: HTML'DE AUDIO ELEMENTLERİ muted BAŞLAT -->
 <audio id="sfx-gol" src="gol.mp3" muted></audio> 
 <audio id="anthem-gs" src="mars_gs.mp3" loop muted></audio>
 <audio id="anthem-fb" src="mars_fb.mp3" loop muted></audio>
@@ -142,8 +139,6 @@ body.leader-gs { background-color: #1a0005; } body.leader-fb { background-color:
 <script>
 // --- CONFIGURATION ---
 const urlParams = new URLSearchParams(window.location.search);
-
-// ARTIK SADECE SÜRE VE SES AYARI KALDI - API KEY GEREKMEZ
 let CONFIG = {
   duration: parseInt(urlParams.get('time')) || 60,
   muted: false
@@ -166,8 +161,6 @@ let STATE = {
   isDoublePoints: false,
   doublePointTriggerTime: -1,
   currentLeader: null,
-  
-  // ⏱️ KULLANICI → SON OY ZAMANI
   lastVoteTime: {}
 };
 
@@ -194,7 +187,6 @@ const UI = {
   goalBar: document.getElementById('goal-bar-fill'),
   x2Event: document.getElementById('event-x2'),
   lastHitDisplay: document.getElementById('last-hit-display'),
-  weather: document.getElementById('weather-layer'),
   subArea: document.getElementById('sub-notification-area')
 };
 
@@ -207,57 +199,22 @@ function notifySubscriber(name) {
     setTimeout(() => { card.remove(); }, 4000);
 }
 
-window.toggleTestMode = function() {
-  console.log("Test modu açıldı. Botlar oy veriyor...");
-  setInterval(() => {
-    if(!STATE.active) return;
-    let teams = ['gs','fb','bjk'];
-    let users = ['Barış','Ahmet','Mehmet','Ayşe','Fatma','StreamLover','ProOyuncu','Kral123'];
-    let mult = Math.random() > 0.9 ? 5 : 1; 
-    processVote(teams[Math.floor(Math.random()*3)], users[Math.floor(Math.random()*users.length)], mult);
-  }, 200);
-}
-
-// ✅ 3. KATMAN: SES KİLİDİNİ AÇMA FONKSİYONU
 function unlockAudioKillSwitch() {
   if (CONFIG.muted) return;
-  
-  // Tüm sesleri topla
-  const allAudios = [
-    UI.audio.amb,
-    UI.audio.gs,
-    UI.audio.fb,
-    UI.audio.bjk,
-    UI.audio.gol
-  ];
-  
-  // Her ses için: muted true -> play -> muted false
+  const allAudios = [UI.audio.amb, UI.audio.gs, UI.audio.fb, UI.audio.bjk, UI.audio.gol];
   allAudios.forEach(audio => {
-    // Eğer audio element yoksa veya zaten playing ise geç
     if (!audio || !audio.paused) return;
-    
-    // muted true yap ve sessizce oynatmaya çalış
     audio.muted = true;
-    
-    // Volume ayarla (sessiz oynatılırken)
-    if (audio.id === 'ambience') audio.volume = 0;
-    else audio.volume = 0;
-    
-    // Play promise
+    audio.volume = 0;
     const playPromise = audio.play();
-    
     if (playPromise !== undefined) {
       playPromise.then(() => {
-        // ✅ Başarılı: unmute yap ve volume ayarla
         audio.muted = false;
         if (audio.id === 'ambience') audio.volume = 0.3;
         else if (audio.id === 'sfx-gol') audio.volume = 0.7;
         else audio.volume = 0.5;
-        
-        console.log(`✅ Audio unlocked: ${audio.id}`);
       }).catch(err => {
-        // ❌ Başarısız: tekrar dene
-        console.log(`⚠️ First try failed for ${audio.id}:`, err);
+        console.log(`⚠️ Audio unlock retry for ${audio.id}`);
         setTimeout(() => {
           audio.muted = true;
           audio.play().then(() => {
@@ -265,9 +222,6 @@ function unlockAudioKillSwitch() {
             if (audio.id === 'ambience') audio.volume = 0.3;
             else if (audio.id === 'sfx-gol') audio.volume = 0.7;
             else audio.volume = 0.5;
-            console.log(`✅ Audio unlocked on retry: ${audio.id}`);
-          }).catch(e => {
-            console.log(`❌ Final fail for ${audio.id}:`, e);
           });
         }, 1000);
       });
@@ -275,43 +229,29 @@ function unlockAudioKillSwitch() {
   });
 }
 
-// Güncellenmiş safePlay fonksiyonu
 async function safePlay(audioElem) {
     try { 
         if(audioElem.readyState >= 2) {
             await audioElem.play(); 
-            console.log(`🔊 Playing: ${audioElem.id}`);
         }
-    } catch(err) { 
-        console.log("❌ Auto-play blocked for:", audioElem.id, err); 
-    }
+    } catch(err) { console.log("Blocked:", audioElem.id); }
 }
 
 // --- GAME LOGIC ---
 let timerInterval;
 
 function initGame() {
-  // ✅ 2. KATMAN: SES KİLİDİNİ AÇ (EN KRİTİK ADIM!)
   unlockAudioKillSwitch();
-  
-  // Ses seviyelerini ayarla (unlockAudioKillSwitch içinde de ayarlanıyor ama yine de)
-  UI.audio.amb.volume = 0.3; 
-  UI.audio.gs.volume = 0.5; 
-  UI.audio.fb.volume = 0.5; 
-  UI.audio.bjk.volume = 0.5;
-  UI.audio.gol.volume = 0.7;
+  UI.audio.amb.volume = 0.3; UI.audio.gs.volume = 0.5; UI.audio.fb.volume = 0.5; UI.audio.bjk.volume = 0.5; UI.audio.gol.volume = 0.7;
   
   resetRound();
-  
-  // ✅ FIX 1: pollChat ARTIK OYUN BAŞLADIKTAN SONRA ÇAĞRILIYOR
+
+  // 🔥 YENİ SİSTEM BAŞLATILIYOR (WORKER)
+  console.log("🔥 CHAT SİSTEMİ BAŞLATILIYOR (WORKER)...");
   pollChat();
 
-  // Body click listener artık GEREKSİZ ama yine de ekleyelim
   document.body.addEventListener('click', () => { 
-      if(!CONFIG.muted) {
-          console.log("🖱️ User clicked, playing ambience");
-          safePlay(UI.audio.amb); 
-      }
+      if(!CONFIG.muted) safePlay(UI.audio.amb); 
   }, {once:true});
 }
 
@@ -322,31 +262,17 @@ function resetRound() {
   STATE.votes = { gs:0, fb:0, bjk:0 };
   STATE.lastHitter = null;
   STATE.currentLeader = null;
-  
-  STATE.doublePointTriggerTime = -1;
-  if(CONFIG.duration > 30) STATE.doublePointTriggerTime = Math.floor(Math.random() * (CONFIG.duration - 20)) + 10;
+  STATE.doublePointTriggerTime = CONFIG.duration > 30 ? Math.floor(Math.random() * (CONFIG.duration - 20)) + 10 : -1;
   
   ['gs','fb','bjk'].forEach(k => {
     STATE.mvp[k] = { user: '-', score: 0, data: {} };
     UI.mvp[k].box.classList.remove('visible'); UI.mvp[k].box.classList.remove('has-captain');
-    // Sadece pause yap, currentTime'ı sıfırlama (çünkü artık loop'lar)
     UI.audio[k].pause();
   });
-
-  // 🔁 yeni tur → herkes sıfırdan
   STATE.lastVoteTime = {};
-
   document.getElementById('overlay').classList.remove('active');
   UI.timer.classList.remove('danger');
-  
-  // Ambience'ı otomatik oynat (eğer muted değilse)
-  if(!CONFIG.muted) {
-      setTimeout(() => {
-          if (UI.audio.amb.paused) {
-              safePlay(UI.audio.amb);
-          }
-      }, 500);
-  }
+  if(!CONFIG.muted) setTimeout(() => { if (UI.audio.amb.paused) safePlay(UI.audio.amb); }, 500);
   
   updateDisplay();
   
@@ -364,20 +290,14 @@ function resetRound() {
 
 function processVote(team, user, multiplier = 1) {
   if (!STATE.active) return;
-
   const now = Date.now();
   const last = STATE.lastVoteTime[user] || 0;
-
-  // ⛔ 3 saniye dolmadıysa sayma
-  if (now - last < 3000) return;
-
-  // ✅ oy kabul edildi → zamanı kaydet
+  if (now - last < 3000) return; // Spam koruması
   STATE.lastVoteTime[user] = now;
 
   let points = (STATE.isDoublePoints ? 2 : 1) * multiplier;
   STATE.votes[team] += points;
   STATE.totalGameVotes += points;
-  
   let goalPercent = Math.min((STATE.totalGameVotes / 1000) * 100, 100);
   UI.goalBar.style.width = goalPercent + "%";
   
@@ -396,23 +316,15 @@ function processVote(team, user, multiplier = 1) {
 function updateDisplay() {
   UI.scores.gs.innerText = STATE.votes.gs; UI.scores.fb.innerText = STATE.votes.fb; UI.scores.bjk.innerText = STATE.votes.bjk;
   let max = Math.max(STATE.votes.gs, STATE.votes.fb, STATE.votes.bjk, 1);
-  let leader = null, leaderScore = -1;
-  ['gs', 'fb', 'bjk'].forEach(t => { if(STATE.votes[t] > leaderScore) leaderScore = STATE.votes[t]; });
+  let leaderScore = Math.max(STATE.votes.gs, STATE.votes.fb, STATE.votes.bjk);
+  let leader = null;
   let leaders = ['gs', 'fb', 'bjk'].filter(t => STATE.votes[t] === leaderScore && leaderScore > 0);
   if(leaders.length === 1) leader = leaders[0];
 
   if(leader !== STATE.currentLeader) {
       STATE.currentLeader = leader;
-      ['gs', 'fb', 'bjk'].forEach(team => { 
-          if(team !== leader) {
-              UI.audio[team].pause(); 
-              console.log(`⏸️ Paused: ${team} anthem`);
-          }
-      });
-      if(leader && !CONFIG.muted) {
-          console.log(`▶️ Playing leader anthem: ${leader}`);
-          safePlay(UI.audio[leader]);
-      }
+      ['gs', 'fb', 'bjk'].forEach(t => { if(t !== leader) UI.audio[t].pause(); });
+      if(leader && !CONFIG.muted) safePlay(UI.audio[leader]);
   }
 
   ['gs', 'fb', 'bjk'].forEach(t => {
@@ -441,13 +353,7 @@ function addTicker(user, team, points) {
 function endRound() {
   clearInterval(timerInterval);
   STATE.active = false;
-  if(!CONFIG.muted) { 
-      UI.audio.amb.pause(); 
-      UI.audio.gs.pause(); 
-      UI.audio.fb.pause(); 
-      UI.audio.bjk.pause(); 
-      console.log("⏸️ All anthems paused at round end");
-  }
+  if(!CONFIG.muted) { UI.audio.amb.pause(); UI.audio.gs.pause(); UI.audio.fb.pause(); UI.audio.bjk.pause(); }
 
   let max = Math.max(STATE.votes.gs, STATE.votes.fb, STATE.votes.bjk);
   let winners = Object.keys(STATE.votes).filter(k => STATE.votes[k] === max && max > 0);
@@ -458,10 +364,7 @@ function endRound() {
 
   if(winners.length === 1) {
     let w = winners[0]; STATE.wins[w]++; UI.total[w].innerText = STATE.wins[w];
-    if(!CONFIG.muted) {
-        console.log(`🎉 Winner ${w}! Playing goal sound`);
-        safePlay(UI.audio.gol);
-    }
+    if(!CONFIG.muted) safePlay(UI.audio.gol);
     title.innerText = w.toUpperCase() + " KAZANDI!";
     title.style.color = w==='gs'?'#A90432':(w==='fb'?'#002D72':'#fff');
     if(w==='gs') img.src = "https://upload.wikimedia.org/wikipedia/commons/f/f6/Galatasaray_Sports_Club_Logo.png";
@@ -477,24 +380,21 @@ function endRound() {
   let next = 10;
   let nextInt = setInterval(() => {
     document.getElementById('next-timer').innerText = "Sonraki: " + (--next);
-    if(next < 0) { 
-        clearInterval(nextInt); 
-        STATE.round++; 
-        document.getElementById('round-num').innerText = STATE.round; 
-        resetRound(); 
-    }
+    if(next < 0) { clearInterval(nextInt); STATE.round++; document.getElementById('round-num').innerText = STATE.round; resetRound(); }
   }, 1000);
 }
 
-// --- NEW CHAT READER (VIA WORKER) ---
-const WORKER_URL = "https://yt-chat-proxy.dumbmuzik.workers.dev/chat";
+// --------------------------------------------------------
+// 🔥 YENİ SİSTEM: WORKER POLLING (API-FREE)
+// --------------------------------------------------------
 
-// 🔒 AYNI MESAJLARI TEKRAR İŞLEMEMEK İÇİN
-let seen = new Set();
+const WORKER_URL = "https://yt-chat-proxy.dumbmuzik.workers.dev/";
+
+let seenMessages = new Set();
 
 async function pollChat() {
   try {
-    const res = await fetch(WORKER_URL);
+    const res = await fetch(WORKER_URL + "?t=" + Date.now());
     const data = await res.json();
 
     if (!data.live) {
@@ -502,30 +402,22 @@ async function pollChat() {
       return;
     }
 
-    // ✅ FIX 2: BELLEK KORUMASI
-    if (seen.size > 1000) {
-      seen.clear();
-    }
+    // Bellek kontrolü
+    if (seenMessages.size > 1000) seenMessages.clear();
 
-    data.messages.forEach(msg => {
-      const key = msg.user + "|" + msg.text;
+    data.messages.forEach((msg) => {
+      if (seenMessages.has(msg.id)) return;
+      seenMessages.add(msg.id);
 
-      // 🔒 Aynı mesajı bir daha işleme
-      if (seen.has(key)) return;
-      seen.add(key);
-
-      // ✅ FIX 3: REGEX KONTROLÜ (Başlangıç eşleşmesi + Lowercase)
-      const text = msg.text.toLowerCase();
-
-      if (/^gs\b/.test(text)) processVote("gs", msg.user);
-      else if (/^fb\b/.test(text)) processVote("fb", msg.user);
-      else if (/^bjk\b/.test(text)) processVote("bjk", msg.user);
+      const t = msg.text.toLowerCase().trim();
+      if (t.startsWith("gs")) processVote("gs", msg.user);
+      else if (t.startsWith("fb")) processVote("fb", msg.user);
+      else if (t.startsWith("bjk")) processVote("bjk", msg.user);
     });
 
-    setTimeout(pollChat, data.poll || 3000);
-
+    setTimeout(pollChat, data.poll || 5000);
   } catch (e) {
-    console.error("Chat proxy error", e);
+    console.error("Worker error", e);
     setTimeout(pollChat, 7000);
   }
 }
